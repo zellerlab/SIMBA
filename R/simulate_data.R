@@ -11,7 +11,7 @@
 #' as well as specific parameters to create simulated metagenomic samples
 #' and stores those in the indicated .h5 file
 #'
-#' @usage simulate.data(feat, meta, sim.location,
+#' @usage create.data.simulation(feat, meta, sim.location,
 #' sim.method='resampling',
 #' sim.type="cross-section",
 #' filt.params=list(prev.cutoff=0.05, ab.cutoff=1e-04, log.n0=1e-05),
@@ -45,7 +45,7 @@
 #'
 #' @export
 #'
-#' @keywords SIMBA simulate.data
+#' @keywords SIMBA create.data.simulation
 #'
 #' @return Does not return anything but instead creates an h5 file
 #' containing simulated samples
@@ -57,7 +57,7 @@
 #' \bold{Simulations}
 #' \bold{h5-File Organisation}
 #'
-simulate.data <- function(feat, meta, sim.location,
+create.data.simulation <- function(feat, meta, sim.location,
                           sim.method='resampling',
                           sim.type="cross-section",
                           filt.params=list(prev.cutoff=0.05,
