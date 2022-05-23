@@ -1,0 +1,34 @@
+Package: SIMBA
+Type: Package
+Title: Simulation of Microbiome data with Biological Accuracy
+Version: 0.5.0
+Authors@R: c(person("Jakob", "Wirbel", role = c("aut", "cre"),
+                email = "jakob.wirbel@embl.de",
+                comment = c(ORCID = "0000-0002-4073-3562")),
+             person("Morgan", "Essex",
+                email = "morgan.essex@embl.de", role = c("aut")),
+             person("Sofia", "Forslund",
+                email = "Sofia.Forslund@mdc-berlin.de", role = c("aut")),
+             person("Georg", "Zeller",
+                email = "zeller@embl.de", role = c("aut")))
+Maintainer: Jakob Wirbel <jakob.wirbel@embl.de>
+Description: Based on real data, the package simulates new metagenomic data 
+    by re-sampling real samples and then implants differentially abundant 
+    features. Additionally, the package can simulate confounding factors based 
+    on metadata variables in the real data. The simulations are stored in an 
+    `.h5` file, which is then the basis for downstream benchmarking, 
+    involving i) reality assessment of the  simulations, ii) testing for 
+    differential abundance, and iii) evaluation of the output from 
+    differential abundance testing methods.
+Depends:
+    R (>= 4.0.0),
+    rhdf5
+Suggests:
+    knitr,
+    rmarkdown,
+    tidyverse,
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
+
