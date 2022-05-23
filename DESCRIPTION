@@ -1,7 +1,7 @@
 Package: SIMBA
 Type: Package
 Title: Simulation of Microbiome data with Biological Accuracy
-Version: 0.5.0
+Version: 0.5.1
 Authors@R: c(person("Jakob", "Wirbel", role = c("aut", "cre"),
                 email = "jakob.wirbel@embl.de",
                 comment = c(ORCID = "0000-0002-4073-3562")),
@@ -27,6 +27,7 @@ Suggests:
     knitr,
     rmarkdown,
     tidyverse,
+    patchwork
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

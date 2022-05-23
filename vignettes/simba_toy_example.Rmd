@@ -1,0 +1,251 @@
+---
+title: "SIMBA Simulation & Evaluation Example"
+author:
+-   name: "Jakob Wirbel, Morgan Essex, and Georg Zeller"
+    affiliation: "EMBL Heidelberg"
+    email: "georg.zeller@embl.de"
+date: "Date last modified: 23-05-2022"
+output: BiocStyle::html_document
+vignette: >
+    %\VignetteIndexEntry{SIMBA toy example}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{ASCII}
+---
+
+# Introduction and setup
+
+This vignette aims to introduce the basic functionality of the SIMBA package and show the structure of the H5 files integral to its use. 
+
+Here and in the manuscript, we use the data and metadata from [Zeevi et al.](https://www.cell.com/cell/fulltext/S0092-8674(15)01481-6) as input for different case-control simulation frameworks.
+
+```{r setup}
+library("tidyverse") # for data wrangling
+library("SIMBA")
+data("toy_example") # example data
+```
+
+In principle, any metagenomic count table can be used as input, so long as it follows the same format.
+
+```{r show.data}
+toy.feat[1:3, 1:3]
+toy.meta[1:3, 2:4]
+```
+
+# 1. Simulate metagenomic data
+
+We begin with setting up some minimal parameters for our simulations. Since we begin with a raw count table, we provide some filtering parameters including prevalence and abundance cutoffs, and a pseudocount value. These will be stored in the .h5 file when the simulation is created. 
+
+`subset_size`, `ab.scale`, and `prev.scale` can be vectors of multiple values, and `prev_scale` is a unique requirement of our signal implantation framework (secondary effect size introducing prevalence shifts between groups in addition to abundance shifts, present in all frameworks).
+
+```{r parameters}
+# filtering parameters
+ab.cutoff <- 1e-04
+prev.cutoff <- 0.05
+log.n0 <- 1e-05
+
+# other parameters for the simulations
+prop.markers <- 0.1
+class.balance <- 0.5
+subset_size <- c(50, 100)
+
+# effect sizes
+ab.scale <- c(1.0, 2.0)
+prev.scale <- 0.2
+```
+
+## McMurdie and Holmes framework (multinomial)
+
+We will first create 10 simulations for each combination of effect sizes using the multinomial parametric simulation framework from [McMurdie & Holmes](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003531).
+
+Expected time on a standard laptop: about 1 minute.
+
+```{r mmh.sim}
+# give the simulation a filename
+sim.mmh <- 'parametric_example_mmh.h5'
+
+# create simulations
+system.time(
+  create.data.simulation(feat = toy.feat, 
+              meta=toy.meta,
+              sim.location = sim.mmh,
+              sim.type='cross-section',
+              sim.method='McMurdie&Holmes',
+              filt.params = list(ab.cutoff=as.numeric(ab.cutoff),
+                                 prev.cutoff=prev.cutoff,
+                                 log.n0=as.numeric(log.n0)),
+              sim.params = list(ab.scale=ab.scale,
+                                prop.markers=prop.markers,
+                                class.balance=class.balance,
+                                repeats=10)))
+```
+
+H5 files can be read with the `rhdf5` library in R. Each effect size combination is stored as a 'group' within the file (e.g. ab1_rep1 and ab1_rep2 to represent the first and second repeats of the first abundance shift contained in `ab.scale`).
+
+This results in a total of 10 repeats x 2 effect sizes = 20 simulations.
+
+```{r}
+temp <- rhdf5::h5ls(sim.mmh, recursive=FALSE)
+temp
+```
+
+Finally, we randomly resample each of these groups 10 times each at our desired subset sizes and class balance, and save the indices to the H5 file.
+
+```{r mmh.sim.structure}
+# create testing indices
+system.time(
+  create.test.idx(sim.location=sim.mmh,
+                subsets=subset_size,
+                repetitions=10))
+```
+
+Each group stores the simulated data matrix (features), row and column names, group labels, and the indices of ground truth features (marker_idx). 
+
+When the randomized subsets are generated, a subgroup called test_idx is created under each group, which stores a matrix of the indices for each subset size. In this example, there are 11x50 and 11x100 matrices containing the group labels (header row), and then a row of sample indices for each of the desired 10 repetitions (11 total).
+
+```{r}
+temp <- rhdf5::h5ls(sim.mmh)
+temp[1:9,]
+
+head(rhdf5::h5read(sim.mmh, 'ab1_rep1/test_idx/subset_50'))
+```
+
+## Signal implantation framework (without confounders)
+
+Next, we will do the same simulation and subset generation with our implantation framework. 
+
+Expected time on a standard laptop: about 12 seconds.
+
+```{r signal.implantation.sim}
+# give the simulation a filename
+sim.implant <- 'implantation_example.h5'
+
+# create simulations
+system.time(
+  create.data.simulation(feat = toy.feat,
+                meta = toy.meta,
+                sim.location = sim.implant,
+                sim.type ='cross-section',
+                sim.method ='resampling',
+                filt.params = list(ab.cutoff=as.numeric(ab.cutoff),
+                                   prev.cutoff=prev.cutoff,
+                                   log.n0=as.numeric(log.n0)),
+                sim.params = list(ab.scale=ab.scale,
+                                  prev.scale=prev.scale,
+                                  prop.markers=prop.markers,
+                                  conf=NULL,
+                                  class.balance=class.balance,
+                                  feature.type='all',
+                                  repeats=10)))
+
+# create testing indices
+system.time(
+  create.test.idx(sim.location=sim.implant,
+                subsets=subset_size,
+                repetitions=10))
+```
+
+The resulting H5 file will be identical, but the group names will reflect the inclusion of a prevalence shift effect size capable in our framework.
+
+Note: abundance shifts of 1.0 and prevalence shifts of 0.0 do not introduce any effect sizes (multiplies counts in one group by 1 or shifts 0% of features between groups, respectively).
+
+```{r}
+temp <- rhdf5::h5ls(sim.implant, recursive=FALSE)
+setdiff(temp$name, c('original_data', 'simulation_parameters'))
+```
+
+# 2. Reality assessment
+
+Once data has been simulated, several attributes are calculated to check the realism of the simulations, for example feature sparsity and variance. 
+
+```{r}
+system.time(
+  stats <- reality.check(sim.location=sim.implant, 
+                         group='ab2_prev1_rep1', 
+                         ml=FALSE)
+)
+map(stats, ~ head(.))
+```
+
+PCoAs may also be used to visualize the difference between real and simulated samples.
+
+```{r pcoa.plots}
+library(patchwork)
+
+pcoa.mmh <- pcoa.plot(sim.mmh, 'ab2_rep1', 'bray') +
+  labs(title = 'Multinomial, McMurdie & Holmes') 
+pcoa.implant <- pcoa.plot(sim.implant, 'ab2_prev1_rep1', 'bray') +
+  labs(title = 'Signal Implantation')
+
+(pcoa.mmh | pcoa.implant) +
+  plot_layout(guides = 'collect') &
+  theme(legend.position = 'bottom')
+```
+
+# 3. Apply differential abundance tests
+
+To run a differential abundance test, SIMBA uses its `apply.test` function, which works on one H5 group (effect size combination) at a time.
+
+For time purposes, we will only evaluate the n=50 subset sizes. Expected time on a standard laptop: about 30 seconds.
+
+```{r}
+temp <- h5ls(sim.implant, recursive=FALSE)
+groups <- setdiff(temp$name, c('original_data', 'simulation_parameters'))
+groups.sub <- groups[grepl('ab2', groups)]
+
+system.time(
+  pvals <- groups.sub %>%
+    map(~ apply.test(
+      # full simulation file
+      sim.location = sim.implant, 
+      # which effect size combination
+      group = ., 
+      # which subset size(s)
+      subset = 50,
+      # which normalization method (pass = none)
+      norm = 'pass', 
+      # differential abundance test
+      test = 'wilcoxon')) %>%
+    flatten()
+)
+```
+
+`apply.test` returns a matrix of p-values for each subset size, where each row is a bacterial taxon and each column is the significance of the differential abundance of that taxon across each of the 10 repetitions.
+
+```{r}
+head(pvals[[1]]$subset_50)
+```
+
+# 4. Evaluate test results
+
+To evaluate differential abundance test results, the p-value matrix above can be fed to the `eval.test` SIMBA function, which uses the ground truth stored in marker_idx for each group to tabulate a confusion matrix, precision, recall, AUROC, and a FDR for each element.
+
+```{r}
+system.time(
+  evals <- groups.sub %>%
+    map(~ eval.test(
+      # full simulation file
+      sim.location = sim.implant,
+      # which effect size combination
+      group = .,
+      # single p-value matrix
+      res.mat = pvals[[.]]$subset_50,
+      # desired significance threshold
+      alpha = 0.05)) %>%
+    set_names(groups.sub) %>%
+    bind_rows(.id = 'group')
+)
+
+evals[1:10,]
+```
+
+## Session Info
+
+```{r echo=FALSE, message=FALSE}
+file.remove(sim.implant)
+file.remove(sim.mmh)
+```
+
+```{r}
+sessionInfo()
+```
+
