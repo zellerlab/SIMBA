@@ -161,7 +161,6 @@ simulate.negbin <- function(feat, meta, sim.out, sim.params){
 
   # sample libsizes
   libSizesOrig <- colSums(feat)
-
   # calculate rhos/phis
   message("++ Starting to calculate parameters ",
           "for the negative binomial distributions")
@@ -172,6 +171,15 @@ simulate.negbin <- function(feat, meta, sim.out, sim.params){
     res <- try(MASS::glm.nb(y ~ offset(logLibSizes),
                             link = "log"), silent = TRUE)
     nbfitlist[[x]] <- res
+  }
+  fit.success <- vapply(nbfitlist, length, FUN.VALUE = double(1))
+  if (any(fit.success == 1)) {
+    nbfitlist[[which(fit.success==1)]] <- NULL
+    removed.sp <- names(fit.success)[which(fit.success==1)]
+    el.feat.names <- setdiff(el.feat.names, removed.sp)
+    if (!is.null(correlation)){
+      correlation <- correlation[-removed.sp, -removed.sp]
+    }
   }
   phiMLEs <- vapply(nbfitlist, function(y) {1/y$theta}, FUN.VALUE = double(1))
   rhoMLEs <- vapply(nbfitlist, function(y) {y$coef[1]}, FUN.VALUE = double(1))
