@@ -60,7 +60,6 @@ reality.check <- function(sim.location, group, ml=FALSE){
                                 name='/original_data/filt_feature_names')
   feat.rel <- prop.table(feat.filt, 2)
 
-
   if (group=='original'){
     message("+ Calculating sparsity")
     df.sparsity <- data.frame(Gini=vapply(colnames(feat.filt),
@@ -82,6 +81,7 @@ reality.check <- function(sim.location, group, ml=FALSE){
                              ifelse(df.select$median==0 & df.select$quant75!=0,
                                     'middle','high'))
     df.variance <- data.frame(var.rel=rowVars(feat.rel),
+                              mean.rel=rowMeans(feat.rel),
                               features=rownames(feat.filt),
                               selection=FALSE,
                               feat.type=df.select[rownames(feat.filt), 'type'])
@@ -163,6 +163,7 @@ reality.check <- function(sim.location, group, ml=FALSE){
     # add also gFC and prevalence shift
     df.variance <- data.frame(
       var.rel=rowVars(feat.sim.rel),
+      mean.rel=rowMeans(feat.sim.rel),
       features=rownames(feat.filt),
       selection=rownames(feat.sim) %in% markers,
       feat.type=df.select[rownames(feat.filt), 'type'])
