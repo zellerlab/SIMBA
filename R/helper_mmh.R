@@ -164,10 +164,22 @@ microbesim <- function(template, J, n=1E4){
     stop("n should be length 1, or length J.")
   }
   # Actually create the simulated abundance table
-  simat = mapply(function(i, x, sample.size){
-    if(FALSE){print(i)} # i is a dummy iterator
-    phyloseq:::rarefaction_subsample(x, sample.size)
-  }, i=1:J, sample.size=n, MoreArgs=list(x=pi), SIMPLIFY=TRUE)
+  # simat = mapply(function(i, x, sample.size){
+  #   if(FALSE){print(i)} # i is a dummy iterator
+  #   phyloseq:::rarefaction_subsample(x, sample.size)
+  # }, i=1:J, sample.size=n, MoreArgs=list(x=pi), SIMPLIFY=TRUE)
+  
+  # ############
+  # EDIT by Jakob
+  # alternative for KEGG-type profiles?
+  # the previous way to simulate fails because of overflow (as is feared in the
+  # phyloseq sourcecode... alternatively, we could use the vegan rarefaction 
+  # for very similar results?)
+  simat2 <- vapply(n, FUN=function(x){vegan::rrarefy(pi, x)}, 
+                  FUN.VALUE = double(length(pi)))
+  # i checked with PCoA and the results are virtually indistinguishable, 
+  # but the vegan version is way faster and more memory-friendly
+  # ############
   simat = t(simat)
   # Add the OTU names to the OTU (column) indices
   colnames(simat) <- names(pi)
