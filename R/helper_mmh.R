@@ -96,6 +96,7 @@ simulate.W <- function(feat, meta, sim.out, sim.params){
   sim.feat.mmh <- microbesim(template, J=ncol(feat), n=n)
   message("++ Finished creating simulation template")
   num.sample <- ncol(feat)
+  browser()
   # actual implantation
   pb <- progress_bar$new(total = length(ab.scale)*repeats)
   for (a in seq_along(ab.scale)){
@@ -173,9 +174,27 @@ microbesim <- function(template, J, n=1E4){
   # EDIT by Jakob
   # alternative for KEGG-type profiles?
   # the previous way to simulate fails because of overflow (as is feared in the
-  # phyloseq sourcecode... alternatively, we could use the vegan rarefaction 
+  # phyloseq source code... alternatively, we could use the vegan rarefaction 
   # for very similar results?)
-  simat2 <- vapply(n, FUN=function(x){vegan::rrarefy(pi, x)}, 
+  # # UPDATE
+  # i checked with PCoA and the results are virtually indistinguishable, 
+  # but the vegan version is way faster and more memory-friendly
+  # # SECOND UPDATE
+  # fails for KEGG profiles since the counts are too large
+  while (TRUE){
+    pi.2 <- pi
+    mode(pi.2) <- "integer"
+    if (any(is.na(pi.2))){
+      message('+++ Reduce counts in the taxa_sums vector to prevent errors')
+      pi <- pi/10
+      n <- n/10
+    } else {
+      pi <- pi.2
+      break
+    }
+  }
+  message("+++ Create base simulations")
+  simat <- vapply(n, FUN=function(x){vegan::rrarefy(pi, x)}, 
                   FUN.VALUE = double(length(pi)))
   # i checked with PCoA and the results are virtually indistinguishable, 
   # but the vegan version is way faster and more memory-friendly
@@ -216,6 +235,7 @@ simulate.markers.MMH <- function(physeq, label, nTP, effectsize){
 # simulate makers according to Weiss et al.
 simulate.markers.W <- function(physeq, label, nTP, effectsize){
   # transpose otu table for the Weiss function to work
+  browser()
   otu_table(physeq) <- t(otu_table(physeq))
   # also set the taxa_are_rows variable?
   physeq@taxa_are_rows <- TRUE
