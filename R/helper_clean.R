@@ -206,7 +206,6 @@ validate.original.data <- function(d.list, sim.method){
               ' samples with less than 1000 counts!')
       feat.temp <- feat.temp[,colSums(feat.temp) > 1000, drop=FALSE] 
     }
-    
     # check that metadata contains needed entries
     if (any(!c('Individual_ID', "Timepoint") %in% colnames(meta.temp))){
       stop("Metadata for dataset No. ", i,
@@ -234,6 +233,7 @@ validate.original.data <- function(d.list, sim.method){
     }
     
     feat.temp <- feat.temp[,all.samples]
+    feat.temp <- feat.temp[order(rownames(feat.temp)),]
     meta.temp <- meta.temp[all.samples,]
     colnames.meta[[i]] <- colnames(meta.temp)
     feat.names[[i]] <- rownames(feat.temp)
@@ -251,6 +251,11 @@ validate.original.data <- function(d.list, sim.method){
     test <- TRUE
   } else if (length(feat.names) == 2){
     test <- all.equal(feat.names[[1]], feat.names[[2]])
+    if (is.logical(test)){
+      test <- test
+    } else {
+      test <- FALSE
+    }
   } else {
     test <- TRUE
     for (i in seq_len(length(feat.names))){
