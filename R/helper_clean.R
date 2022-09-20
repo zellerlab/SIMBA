@@ -201,6 +201,9 @@ validate.original.data <- function(d.list, sim.method){
         stop("Features for dataset No. ", i, " contains negative entries!")
       }
       # filter
+      removed.samples <- sum(colSums(feat.temp) < 1000)
+      message("+ Removing ", removed.samples, 
+              ' samples with less than 1000 counts!')
       feat.temp <- feat.temp[,colSums(feat.temp) > 1000, drop=FALSE] 
     }
     
