@@ -178,7 +178,7 @@ simulate.negbin <- function(feat, meta, sim.out, sim.params){
     removed.sp <- names(fit.success)[which(fit.success==1)]
     el.feat.names <- setdiff(el.feat.names, removed.sp)
     if (!is.null(correlation)){
-      idx <- which(rownames(correlation) %in% removed.sp)
+      idx <- which(names(fit.success) %in% removed.sp)
       correlation <- correlation[-idx, -idx]
     }
   }
