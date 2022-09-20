@@ -178,7 +178,8 @@ simulate.negbin <- function(feat, meta, sim.out, sim.params){
     removed.sp <- names(fit.success)[which(fit.success==1)]
     el.feat.names <- setdiff(el.feat.names, removed.sp)
     if (!is.null(correlation)){
-      correlation <- correlation[-removed.sp, -removed.sp]
+      idx <- which(rownames(correlation) %in% removed.sp)
+      correlation <- correlation[-idx, -idx]
     }
   }
   phiMLEs <- vapply(nbfitlist, function(y) {1/y$theta}, FUN.VALUE = double(1))
