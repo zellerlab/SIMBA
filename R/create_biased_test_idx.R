@@ -186,9 +186,10 @@ perform.idx.bias.checks <- function(sim.location, subsets, repetitions,
     message('++ Parameter ', subset, ' reduced to: ',
             paste(subsets, collapse = ', ')) }
   if (any(subsets > n.samples)){
-    message('++ Some entries in parameter ', subsets, ' are too large!')
+    message('++ Some entries in parameter subsets are too large!  c(',
+            paste(subsets, collapse = ', '), ')')
     subsets <- subsets[subsets <= n.samples]
-    message('++ Parameter ', subset, ' reduced to: ',
+    message('++ Parameter subsets reduced to: ',
             paste(subsets, collapse = ', ')) }
 
   skipped <- NULL
