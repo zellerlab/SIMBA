@@ -115,7 +115,6 @@ test.wilcoxon <- function(data, label, conf){
 
   # Nan p.val can occurr for constant samples
   p.val[!is.finite(p.val)] = 1.0
-  p.val = p.adjust(p.val, method = 'fdr')
   return(p.val)
 }
 
@@ -139,7 +138,6 @@ test.fisher <- function(data, label){
     t = fisher.test(counts)
     p.val[f] = t$p.value
   }
-  p.val = p.adjust(p.val, method='fdr')
   return(p.val)
 }
 
@@ -174,8 +172,6 @@ test.DESeq <- function(data, label){
   res = results(diagdds)
   p.val <- res$pvalue
   names(p.val) <- rownames(res)
-  ###
-  p.val <- p.adjust(p.val, method = 'fdr')
   return(p.val)
 }
 
@@ -213,10 +209,10 @@ test.MGS <- function(data, label, type=1, conf=NULL){
     res <- MRcoefs(fit, number = Inf)
     p.val = rep(1, nrow(data))
     names(p.val) = rownames(data)
-    p.val[row.names(res)] = p.adjust(res$pvalues, method='fdr')
+    p.val[row.names(res)] = res$pvalues
     p.val},
     error=function(err){
-      p.val <- rep(NA_real_, nrow(data))
+      p.val <- rep(1, nrow(data))
       names(p.val) <- rownames(data)
       p.val
     })
@@ -226,7 +222,7 @@ test.MGS <- function(data, label, type=1, conf=NULL){
 
 #' @keywords internal
 test.edgeR <- function(data, label){
-
+  
   test.package('edgeR')
 
   stopifnot(ncol(data) == length(label))
@@ -243,7 +239,7 @@ test.edgeR <- function(data, label){
   # test for error message
   t <- exp(rowMeans(log(f.counts)))
   if (any(t > 0)){
-    y = calcNormFactors(y, method='RLE')
+    y = edgeR::calcNormFactors(y, method='RLE')
   }
   y = estimateCommonDisp(y)
   y = estimateTagwiseDisp(y)
@@ -252,7 +248,7 @@ test.edgeR <- function(data, label){
   stopifnot(all(names(nonzero.idx) == rownames(res$table)))
   p.val = rep(1.0, nrow(data))
   names(p.val) <- rownames(data)
-  p.val[nonzero.idx] = res$table[,'FDR']
+  p.val[nonzero.idx] = res$table[,'PValue']
   return(p.val)
 }
 
@@ -392,6 +388,7 @@ test.ANCOM.2 <- function(data, label, conf){
 
 #' @keywords internal
 test.ANCOMBC <- function(data, label, conf){
+  
   test.package('ANCOMBC')
   test.package("phyloseq")
   # deal with nonunique samples from biased idx generation
@@ -412,7 +409,7 @@ test.ANCOMBC <- function(data, label, conf){
                   p_adj_method = 'fdr', lib_cut = 100)
   p.val <- rep(1, nrow(data))
   names(p.val) <- rownames(data)
-  p.val[rownames(temp$res$q_val)] <- temp$res$q_val$label
+  p.val[rownames(temp$res$q_val)] <- temp$res$p_val$label
   return(p.val)
 }
 
@@ -456,7 +453,7 @@ test.ZIBseq <- function(data, label, conf, transform=FALSE){
   # some edits to match p values back to original data
   p.val <- rep(1, nrow(data))
   names(p.val) <- rownames(data)
-  p.val[names(useF)] <- p.adjust(pvalues, method='fdr')
+  p.val[names(useF)] <- pvalues
   return(p.val)
 }
 
@@ -483,7 +480,7 @@ test.corncob <- function(data, label, conf){
                         data=x.phylo,
                         test='Wald')
 
-  p.vals <- x$p_fdr
+  p.vals <- x$p
   return(p.vals)
 }
 
@@ -497,7 +494,6 @@ test.via.limma <- function(data, label, conf){
   }
   res <- eBayes(fit)
   p.val <- res$p.value[,'label']
-  p.val <- p.adjust(p.val, method='fdr')
   return(p.val)
 }
 
@@ -518,8 +514,7 @@ test.lm <- function(data, label, conf){
       return(res$`Pr(>F)`[1])
     }, FUN.VALUE = double(1))
   }
-  p.val <- p.adjust(p.vals, method = 'fdr')
-  return(p.val)
+  return(p.vals)
 }
 
 #' @keywords internal
@@ -546,8 +541,7 @@ test.lme <- function(data, label, conf){
       return(p)
     }, FUN.VALUE = double(1))
   }
-  p.val <- p.adjust(p.vals, method = 'fdr')
-  return(p.val)
+  return(p.vals)
 }
 
 #' @keywords internal
@@ -676,7 +670,6 @@ test.aldex2 <- function(data, label, conf){
   } else {
     stop("Not yet implemented for multiple confounders!")
   }
-  p.val <- p.adjust(p.val, method='fdr')
   return(p.val)
 }
 
@@ -696,7 +689,6 @@ test.ks <- function(data, label, conf){
   } else {
     stop("Kolmogorov-Smirnoff test is not implemented for confounders!")
   }
-  p.val <- p.adjust(p.val, method='fdr')
   return(p.val)
 }
 
@@ -827,7 +819,6 @@ test.distinct <- function(data, label, conf){
   p.val <- rep(1, nrow(data))
   names(p.val) <- rownames(data)
   p.val[res$gene] <- res$p_val
-  p.val <- p.adjust(p.val, method = 'fdr')
   return(p.val)
 }
 
@@ -884,7 +875,6 @@ test.ZINQ <- function(data, label, conf){
       p.val[sp] <- p.sp
     }
   }
-  p.val <- p.adjust(p.val, method='fdr')
   return(p.val)
 }
 
