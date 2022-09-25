@@ -41,9 +41,9 @@
 #' value for the different test runs.
 #'
 #' @export
-eval.test <- function(sim.location, group, res.mat, alpha = 0.05) {
+eval.test <- function(sim.location, group, res.mat, adjust='BH', alpha = 0.05) {
 
-  res <- check.eval.parameters(sim.location, group, res.mat, alpha)
+  res <- check.eval.parameters(sim.location, group, res.mat, adjust, alpha)
   # browser()
 
   # create data.frame to store the evaluation results
@@ -63,6 +63,7 @@ eval.test <- function(sim.location, group, res.mat, alpha = 0.05) {
 
     # named vector of p.vals for test rep x
     p.val <- res[,x]
+    p.val <- p.adjust(p.val, method=adjust)
     # auc
     auroc <- roc(predictor = -log10(p.val + 1e-50), response = marker,
                  levels = c(0, 1), direction = '<')
@@ -94,12 +95,20 @@ eval.test <- function(sim.location, group, res.mat, alpha = 0.05) {
 
 
 #' @keywords internal
-check.eval.parameters <- function(sim.location, group, res.mat, alpha) {
+check.eval.parameters <- function(sim.location, group, 
+                                  res.mat, adjust, alpha) {
 
   # check simulation file
   if (!file.exists(sim.location)) {
     stop("No such simulation exists!") }
 
+  if (mode(adjust)!='character' | length(adjust)!=1){
+    stop("Parameter 'adjust' should be a character and of length 1!")
+  }
+  if (!adjust %in% p.adjust.methods){
+    stop("Parameter 'adjust' must be one of these: c('", 
+         paste(p.adjust.methods, collapse = "', '"), "')")
+  }
   # get marker features
   this <- h5read(file = sim.location, name = group)
   marker.feat <- this$marker_idx
