@@ -158,7 +158,12 @@ reality.check <- function(sim.location, group, ml=FALSE){
     # feature variance
     x <- rownames(feat.filt)
     y <- rownames(feat.sim)
-    stopifnot(all(x == y))
+    # problem for negbin/betabin simulations (some models might fail for 
+    # some features)
+    stopifnot(all(y %in% x))
+    overlap <- intersect(x, y)
+    feat.filt <- feat.filt[overlap,]
+    feat.sim <- feat.sim[overlap,]
 
     # add also gFC and prevalence shift
     df.variance <- data.frame(
