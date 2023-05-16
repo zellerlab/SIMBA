@@ -488,9 +488,10 @@ test.corncob <- function(data, label, conf){
 test.via.limma <- function(data, label, conf){
   test.package('limma')
   if (is.null(conf)){
-    fit <- lmFit(data, design = data.frame(label))
+    fit <- lmFit(data, design = data.frame(intercept = -1, label))
   } else {
-    fit <- lmFit(data, design = data.frame(label, conf[colnames(data),]))
+    x <- duplicateCorrelation(data, design = data.frame(label), block = conf[colnames(data), 'conf'])
+    fit <- lmFit(data, design = data.frame(intercept = -1, label), block = conf[colnames(data), 'conf'], correlation = x[[1]])
   }
   res <- eBayes(fit)
   p.val <- res$p.value[,'label']
