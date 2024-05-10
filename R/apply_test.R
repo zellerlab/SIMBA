@@ -156,7 +156,7 @@ check.testing.parameters <- function(sim.location, group, type,
                         'ANCOM',
                         'ANCOM_old',
                         'ANCOMBC',
-                        "lm",
+                        "lm", "lm_inter",
                         "corncob",
                         "limma",
                         "lme",
@@ -169,7 +169,9 @@ check.testing.parameters <- function(sim.location, group, type,
                         'mixMC',
                         'ZINQ',
                         'songbird',
-                        'gFC')
+                        'gFC',
+                        't-test',
+                        'LinDA', 'LDM', 'ZicoSeq', 'fastANCOM')
   if (!is.character(test)){
     stop("Parameter 'test' should be a character!")
   }
