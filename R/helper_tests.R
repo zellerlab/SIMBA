@@ -14,6 +14,10 @@ run.test <- function(data, label, test, conf){
     if (!is.null(conf)) {
       stop("Test '", test, "' is not a confounder-aware test!") }
     p.val <- test.fisher(data=data, label=label)
+  } else if (test == 't-test'){
+    if (!is.null(conf)) {
+      stop("Test '", test, "' is not a confounder-aware test!") }
+    p.val <- test.ttest(data=data, label=label)
   } else if (test == 'DESeq2'){
     if (!is.null(conf)) {
       stop("Test '", test, "' is not a confounder-aware test!") }
@@ -52,6 +56,8 @@ run.test <- function(data, label, test, conf){
     p.val <- test.via.limma(data=data, label=label, conf=conf)
   } else if (test=='lm'){
     p.val <- test.lm(data=data, label=label, conf=conf)
+  } else if (test=='lm_inter'){
+    p.val <- test.lminter(data=data, label=label, conf=conf)
   } else if (test=='lme'){
     p.val <- test.lme(data=data, label=label, conf=conf)
   } else if (test=='ALDEx2') {
@@ -72,9 +78,90 @@ run.test <- function(data, label, test, conf){
     p.val <- test.ZINQ(data=data, label=label, conf=conf)
   } else if (test=='gFC') {
     p.val <- test.gFC(data=data, label=label, conf=conf)
+  } else if (test=='LinDA') {
+    p.val <- test.linda(data=data, label=label, conf=conf)
+  } else if (test=='LDM') {
+    p.val <- test.LDM(data=data, label=label, conf=conf)
+  } else if (test=='fastANCOM') {
+    p.val <- test.fastANCOM(data=data, label=label, conf=conf)
+  } else if (test=='ZicoSeq') {
+    p.val <- test.ZicoSeq(data=data, label=label, conf=conf)
   } else {
     stop("Test not found!") }
   return(p.val)
+}
+
+#' @keywords internal
+test.linda <- function(data, label, conf){
+  # from the github README
+  # https://github.com/zhouhj1994/LinDA
+  test.package('LinDA')
+  meta <- as.data.frame(label)
+  linda.obj <- linda(data, meta, formula = '~label', alpha = 0.1,
+                     p.adj.method='BH',
+                     prev.cut = 0.1, lib.cut = 1000, 
+                     winsor.quan = 0.97)
+  p.val <- rep(1, nrow(data))
+  names(p.val) <- rownames(data)
+  p.val[rownames(linda.obj$output$label)] <- linda.obj$output$label$pvalue
+  return(p.val)
+}
+
+#' @keywords internal
+test.LDM <- function(data, label, conf){
+  test.package("LDM")
+  meta <- as.data.frame(label)
+  data.t <- as.data.frame(t(data))
+  meta$label <- as.factor(meta$label)
+  # wow, insane hot-fix
+  # the function somehow draws the otu table out of the global environment
+  # so we have to save the data there.... so dumb
+  .GlobalEnv[['data.t']] <- data.t
+  res.ldm <- ldm(data.t ~ label, data=meta)
+  p.val <- res.ldm$p.otu.omni
+  return(p.val)
+}
+
+#' @keywords internal
+test.fastANCOM <- function(data, label, conf){
+  # browser()
+  test.package("fastANCOM")
+  p.val <- rep(1, nrow(data))
+  names(p.val) <- rownames(data)
+  if (is.null(conf)){
+    res.fastancom <- fastANCOM(Y=t(data), x=label)
+  } else {
+    res.fastancom <- fastANCOM(Y=t(data), x=label, Z=conf[names(label),])
+  }
+  p.val[rownames(res.fastancom$results$final)] <- 
+    res.fastancom$results$final$log2FC.pval
+  return(p.val)
+}
+
+#' @keywords internal
+test.ZicoSeq <- function(data, label, conf){
+  # based on the ZicoSeq vignette
+  # https://cran.r-project.org/web/packages/GUniFrac/vignettes/ZicoSeq.html
+  test.package("GUniFrac")
+  meta <- as.data.frame(label)
+  p.val <- rep(1, nrow(data))
+  names(p.val) <- rownames(data)
+  # apparently we have to do the prevalence filtering ourselves?
+  data.red <- data[apply(data, 1, sd) > 0,]
+  ZicoSeq.obj <- ZicoSeq(feature.dat = data.red, meta.dat = meta, 
+                         grp.name = 'label',
+                         feature.dat.type = 'count',
+                         # more lenient filtering than in the vignette
+                         prev.filter = 0.1, mean.abund.filter = 0,  
+                         max.abund.filter = 0.002, min.prop = 0,
+                         is.winsor = TRUE, outlier.pct = 0.03, 
+                         winsor.end = 'top', 
+                         is.post.sample=TRUE, 
+                         link.func = list(function (x) x^0.5), 
+                         stats.combine.func = max,
+                         perm.no = 99,  strata = NULL)
+  
+  p.val[names(ZicoSeq.obj$p.raw)] <- ZicoSeq.obj$p.raw
 }
 
 #' @keywords internal
@@ -142,6 +229,27 @@ test.fisher <- function(data, label){
 }
 
 #' @keywords internal
+test.ttest <- function(data, label){
+  
+  stopifnot(ncol(data) == length(label))
+  stopifnot(all(colnames(data) %in% names(label)))
+  data <- data[,names(label)]
+  stopifnot(all(sort(unique(label)) == c(-1, 1)))
+  
+  p.val = rep(1, nrow(data))
+  names(p.val) <- rownames(data)
+  for (f in rownames(data)) {
+    p <- tryCatch({
+      t <- t.test(data[f,]~label)
+      t$p.value
+    }, error=function(err){1})
+    if (is.na(p)) p <- 1
+    p.val[f] <- p
+  }
+  return(p.val)
+}
+
+#' @keywords internal
 test.DESeq <- function(data, label){
   # based on vignette in phyloseq
   # https://www.bioconductor.org/packages/release/bioc/vignettes/phyloseq/inst/doc/phyloseq-mixture-models.html
@@ -161,7 +269,7 @@ test.DESeq <- function(data, label){
                      sample_data(temp_sample))
   ####
   # taken from phyloseq vignette
-  diagdds = phyloseq_to_deseq2(physeq, ~ label)
+  diagdds = phyloseq_to_deseq2(physeq, ~label)
   # calculate geometric means prior to estimate size factors
   gm_mean = function(x, na.rm=TRUE){
     exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
@@ -466,34 +574,63 @@ test.ZIBseq_sqrt <- function(data, label, conf){
 test.corncob <- function(data, label, conf){
   test.package('corncob')
   test.package('phyloseq')
-  if (!is.null(conf)){
-    stop("'Corncob' is not a confounder-aware test!")
-  }
+  # browser()
   label <- label + 1
   label <- label/2
-  x.phylo <- phyloseq(otu_table = otu_table(data, taxa_are_rows = TRUE),
-                      sample_data = sample_data(as.data.frame(label)))
-  x <- differentialTest(formula = ~label,
-                        phi.formula = ~label,
-                        formula_null = ~1,
-                        phi.formula_null = ~label,
-                        data=x.phylo,
-                        test='Wald')
-
+  s <- as.data.frame(label)
+  data <- data[,names(label)]
+  if (!is.null(conf)){
+    s <- cbind(s, conf[names(label),,drop=FALSE])
+    rownames(s) <- paste0('sample_', seq_len(nrow(s)))
+    colnames(data) <- rownames(s)
+    x.phylo <- phyloseq(otu_table = otu_table(data, taxa_are_rows = TRUE),
+                        sample_data = sample_data(s))
+    x <- differentialTest(formula = ~label + conf,
+                          phi.formula = ~label,
+                          formula_null = ~conf,
+                          phi.formula_null = ~label,
+                          data=x.phylo,
+                          test='Wald')
+  } else {
+    rownames(s) <- paste0('sample_', seq_len(nrow(s)))
+    colnames(data) <- rownames(s)
+    x.phylo <- phyloseq(otu_table = otu_table(data, taxa_are_rows = TRUE),
+                        sample_data = sample_data(s))
+    x <- differentialTest(formula = ~label,
+                          phi.formula = ~label,
+                          formula_null = ~1,
+                          phi.formula_null = ~label,
+                          data=x.phylo,
+                          test='Wald')
+  }
   p.vals <- x$p
   return(p.vals)
 }
 
 #' @keywords internal
 test.via.limma <- function(data, label, conf){
+  # browser()  
+  stopifnot(all(colnames(data)==names(label)))
   test.package('limma')
   if (is.null(conf)){
-    fit <- lmFit(data, design = data.frame(label))
+    fit <- lmFit(data, design = model.matrix(~label))
+    res <- eBayes(fit)
+    p.val <- res$p.value[,'label']
   } else {
-    fit <- lmFit(data, design = data.frame(label, conf[colnames(data),]))
+    df <- model.matrix(~label+conf[colnames(data), 'conf'])
+    colnames(df)[1] <- 'intercept'
+    colnames(df)[3] <- 'conf'
+    df2 <- data.frame(label=label, conf=conf[colnames(data), 'conf'])
+    # fit <- lmFit(data, design = df) 
+    # contr <- makeContrasts(label-intercept, levels = colnames(df))
+    # contr.fit <- contrasts.fit(fit, contrasts = contr)
+    fit <- lmFit(data, design = data.frame(intercept = -1, label), 
+                 block=conf[colnames(data), 'conf'], correlation = 0.5)
+    res <- eBayes(fit)
+    p.val <- res$p.value[,'label']
   }
-  res <- eBayes(fit)
-  p.val <- res$p.value[,'label']
+  
+  
   return(p.val)
 }
 
@@ -506,12 +643,59 @@ test.lm <- function(data, label, conf){
       return(res$`Pr(>F)`[1])
     }, FUN.VALUE = double(1))
   } else {
-    f <- paste0("feat~label+", paste(colnames(conf), collapse = '+'))
+    # browser()
+    test.package('car')
+    fo <- paste0("feat~label+", paste(colnames(conf), collapse = '+'))
     p.vals <- vapply(rownames(data), FUN=function(x){
-      df <- cbind(data.frame(feat=data[x,], label=label), conf)
-      fit <- lm(data=df, formula = as.formula(f))
-      res <- anova(fit)
-      return(res$`Pr(>F)`[1])
+      df <- cbind(data.frame(feat=data[x,], label=label), 
+                  conf=conf[colnames(data),])
+      problems <- FALSE
+      if (var(df$feat) == 0){
+        problems <- TRUE
+      }
+      if (sum(rowSums(as.matrix(table(df$label, df$conf)) == 0)) == 2){
+        problems <- TRUE
+      }
+      if (problems){
+        return(1)
+      } else {
+        fit <- lm(data=df, formula = as.formula(fo))
+        res <- Anova(fit, type = 'III')
+        return(res$`Pr(>F)`[2])
+      }
+    }, FUN.VALUE = double(1))
+  }
+  return(p.vals)
+}
+
+#' @keywords internal
+test.lminter <- function(data, label, conf){
+  if (is.null(conf)){
+    stop("Test needs a confounder")
+  } else {
+    # browser()
+    test.package('car')
+    fo <- paste0("feat~label*conf")
+    p.vals <- vapply(rownames(data), FUN=function(x){
+      df <- cbind(data.frame(feat=data[x,], label=label), 
+                  conf=conf[colnames(data),])
+      problems <- FALSE
+      if (var(df$feat) == 0){
+        problems <- TRUE
+      }
+      if (sum(rowSums(as.matrix(table(df$label, df$conf)) == 0)) > 0){
+        problems <- TRUE
+      }
+      if (length(unique(df$feat)) < 5){
+        problems <- TRUE
+      }
+      if (problems){
+        return(1)
+      } else {
+        fit <- lm(data=df, formula = as.formula(fo))
+        res <- Anova(fit, type = 'III')
+        return(res$`Pr(>F)`[2])
+      }
     }, FUN.VALUE = double(1))
   }
   return(p.vals)
