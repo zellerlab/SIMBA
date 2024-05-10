@@ -153,6 +153,8 @@ create.data.simulation <- function(feat, meta, sim.location,
     simulate.betabin(feat.filt, meta.original, sim.location, sim.params)
   } else if (sim.method=='sparseDOSSA'){
     simulate.sparseDOSSA(feat.filt, meta.original, sim.location, sim.params)
+  } else if (sim.method=='SimMSeq'){
+    simulate.SimMSeq(feat.filt, meta.original, sim.location, sim.params)
   } else if (sim.method=='pass'){
     label <- as.numeric(as.character(meta.original[,'Label']))
     names(label) <- rownames(meta.original)
