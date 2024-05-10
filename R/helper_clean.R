@@ -453,10 +453,9 @@ check.simulation.parameters <- function(sim.method,
                                         sim.type,
                                         sim.params,
                                         meta){
-  
   if (mode(sim.method) == 'character'){
     allowed.sim.methods <- c('resampling', 'McMurdie&Holmes',
-                             "Weiss", "negbin", "betabin",
+                             "Weiss", "negbin", "betabin", "SimMSeq",
                              "dirmult", "sparseDOSSA", "pass")
     if (!sim.method %in% allowed.sim.methods){
       stop("Parameter 'sim.method' must be one of those: ",
@@ -482,6 +481,9 @@ check.simulation.parameters <- function(sim.method,
       needed.params <-  c('class.balance', 'prop.markers',
                           'ab.scale',  'repeats')
     } else if (sim.method=='sparseDOSSA'){
+      needed.params <-  c('class.balance', 'prop.markers',
+                          'ab.scale',  'repeats')
+    } else if (sim.method=='SimMSeq'){
       needed.params <-  c('class.balance', 'prop.markers',
                           'ab.scale',  'repeats')
     } else if (sim.method=='pass'){
