@@ -613,21 +613,10 @@ test.via.limma <- function(data, label, conf){
   stopifnot(all(colnames(data)==names(label)))
   test.package('limma')
   if (is.null(conf)){
-    fit <- lmFit(data, design = model.matrix(~label))
-    res <- eBayes(fit)
-    p.val <- res$p.value[,'label']
+    fit <- lmFit(data, design = data.frame(intercept = -1, label))
   } else {
-    df <- model.matrix(~label+conf[colnames(data), 'conf'])
-    colnames(df)[1] <- 'intercept'
-    colnames(df)[3] <- 'conf'
-    df2 <- data.frame(label=label, conf=conf[colnames(data), 'conf'])
-    # fit <- lmFit(data, design = df) 
-    # contr <- makeContrasts(label-intercept, levels = colnames(df))
-    # contr.fit <- contrasts.fit(fit, contrasts = contr)
-    fit <- lmFit(data, design = data.frame(intercept = -1, label), 
-                 block=conf[colnames(data), 'conf'], correlation = 0.5)
-    res <- eBayes(fit)
-    p.val <- res$p.value[,'label']
+    x <- duplicateCorrelation(data, design = data.frame(label), block = conf[colnames(data), 'conf'])
+    fit <- lmFit(data, design = data.frame(intercept = -1, label), block = conf[colnames(data), 'conf'], correlation = x[[1]])
   }
   
   
