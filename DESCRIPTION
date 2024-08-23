@@ -1,7 +1,7 @@
 Package: simbaR
 Type: Package
 Title: Simulation of Microbiome Data with Biological Accuracy
-Version: 0.5.3
+Version: 0.5.4
 Authors@R: c(person("Jakob", "Wirbel", role = c("aut", "cre"),
                 email = "jakob.wirbel@gmail.com",
                 comment = c(ORCID = "0000-0002-4073-3562")),
@@ -57,7 +57,6 @@ Suggests:
     ALDEx2,
     ZINQ,
     ZIBSeq,
-    sparseDOSSA,
     mvtnorm,
     SpiecEasi,
     TailRank,
