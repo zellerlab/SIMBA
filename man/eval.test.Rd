@@ -4,7 +4,7 @@
 \alias{eval.test}
 \title{Evaluate the results of different tests}
 \usage{
-eval.test(sim.location, group, res.mat, alpha = 0.05)
+eval.test(sim.location, group, res.mat, adjust='BH', alpha = 0.05)
 }
 \arguments{
 \item{sim.location}{file name for the .h5 file containing the simulations}
@@ -13,6 +13,9 @@ eval.test(sim.location, group, res.mat, alpha = 0.05)
 the simulated features}
 
 \item{res.mat}{matrix, output from the \link{apply.test} function}
+
+\item{adjust}{character, indicate the multiple hypothesis testing to be
+performed on the P-values, defaults to "BH"}
 
 \item{alpha}{numeric, significance threshold at which the test will be
 evaluated, defaults to \code{0.05}}

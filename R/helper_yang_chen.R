@@ -30,7 +30,7 @@ simulate.SimMSeq <- function(feat, meta, sim.out, sim.params){
     for (r in seq_len(repeats)){
       
       # create new dataset with their function
-      sim.chen <- SimulateMSeq(feat,
+      sim.chen <- GUniFrac::SimulateMSeq(feat,
                                nSam=ncol(feat), nOTU=nrow(feat),
                                diff.otu.pct = prop.markers, 
                                diff.otu.mode = 'mix', 

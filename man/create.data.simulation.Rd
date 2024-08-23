@@ -8,7 +8,7 @@ create.data.simulation(feat, meta, sim.location,
 sim.method='resampling',
 sim.type="cross-section",
 filt.params=list(prev.cutoff=0.05, ab.cutoff=1e-04, log.n0=1e-05),
-sim.params=list(class.balance=0.5, prop.markers=0.1,
+sim.params=list(class.balance=0.5, prop.markers=0.1, conf = 'None',
 ab.scale=c(1.0, 1.25, 1.5, 2.0, 5.0, 10.0, 20.0),
 prev.scale=c(0.0, 0.1, 0.2, 0.3),
 repeats=100, feature.type='all'))

@@ -273,7 +273,7 @@ validate.original.data <- function(d.list, sim.method){
   # features
   feat.all <- do.call(cbind, feat.final)
   # metadata
-  colnames.final <- reduce(colnames.meta, intersect)
+  colnames.final <- purrr::reduce(colnames.meta, intersect)
   for (j in seq_along(meta.final)){
     meta.final[[j]] <- meta.final[[j]][,colnames.final]
   }
@@ -442,9 +442,11 @@ confounder.check <- function(feat, meta){
   }
   
   # create plot
-  ggplot(df.plot.all, aes(x=effect.size, y=-log10(p.val))) +
-    geom_point() +
-    facet_grid(~variable)
+  ggplot2::ggplot(df.plot.all, 
+                  ggplot2::aes(x=df.plot.all$effect.size, 
+                               y=-log10(df.plot.all$p.val))) +
+    ggplot2::geom_point() +
+    ggplot2::facet_grid(~variable)
 }
 
 # check simulation parameters

@@ -1,19 +1,36 @@
-#' @title Toy example
+#' @title SIMBA example features
 #'
-#' @description Feature and metadata table from the dataset from Zeevi et al
-#' (see \url{https://doi.org/10.1016/j.cell.2015.11.001}), containing microbial
-#' features profiled with mOTUs2
-#' (see \url{http://dx.doi.org/10.1038/s41467-019-08844-4}). For some
-#' patients, more than one same has been collected.
+#' @description Taxonomic profiles from the study by Zeevi et al. Cell 2014
+#' (see \doi{10.1016/j.cell.2015.11.001}), 
+#' containing 1952 features from 1181 samples, created by the motus profiler.
 #'
-#' Mainly used for running the examples in the function documentation and in
-#' the package vignette.
+#' Mainly used for running the examples in the function documentation and
+#' in the vignette.
 #'
 #' @encoding UTF-8
 #'
-#' @name toy_example
+#' @name toy.feat
 #'
-#' @source \url{https://doi.org/10.1016/j.cell.2015.11.001}
+#' @source \doi{10.1016/j.cell.2015.11.001}
+#'
+#' @docType data
+#'
+#' @keywords data
+NULL
+
+#' @title SIMBA example metadata
+#'
+#' @description Metadata from the study by Zeevi et al. Cell 2014
+#' (see \doi{10.1016/j.cell.2015.11.001}).
+#'
+#' Mainly used for running the examples in the function documentation and
+#' in the vignette.
+#'
+#' @encoding UTF-8
+#'
+#' @name toy.meta
+#'
+#' @source \doi{10.1016/j.cell.2015.11.001}
 #'
 #' @docType data
 #'

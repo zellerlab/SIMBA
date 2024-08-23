@@ -72,8 +72,6 @@ run.test <- function(data, label, test, conf){
     p.val <- test.mixMC(data=data, label=label, conf=conf)
   } else if (test=='distinct') {
     p.val <- test.distinct(data=data, label=label, conf=conf)
-  } else if (test=='songbird') {
-    p.val <- test.songbird(data=data, label=label, conf=conf)
   } else if (test=='ZINQ') {
     p.val <- test.ZINQ(data=data, label=label, conf=conf)
   } else if (test=='gFC') {
@@ -97,7 +95,7 @@ test.linda <- function(data, label, conf){
   # https://github.com/zhouhj1994/LinDA
   test.package('LinDA')
   meta <- as.data.frame(label)
-  linda.obj <- linda(data, meta, formula = '~label', alpha = 0.1,
+  linda.obj <- LinDA::linda(data, meta, formula = '~label', alpha = 0.1,
                      p.adj.method='BH',
                      prev.cut = 0.1, lib.cut = 1000, 
                      winsor.quan = 0.97)
@@ -117,7 +115,7 @@ test.LDM <- function(data, label, conf){
   # the function somehow draws the otu table out of the global environment
   # so we have to save the data there.... so dumb
   .GlobalEnv[['data.t']] <- data.t
-  res.ldm <- ldm(data.t ~ label, data=meta)
+  res.ldm <- LDM::ldm(data.t ~ label, data=meta)
   p.val <- res.ldm$p.otu.omni
   return(p.val)
 }
@@ -129,9 +127,9 @@ test.fastANCOM <- function(data, label, conf){
   p.val <- rep(1, nrow(data))
   names(p.val) <- rownames(data)
   if (is.null(conf)){
-    res.fastancom <- fastANCOM(Y=t(data), x=label)
+    res.fastancom <- fastANCOM::fastANCOM(Y=t(data), x=label)
   } else {
-    res.fastancom <- fastANCOM(Y=t(data), x=label, Z=conf[names(label),])
+    res.fastancom <- fastANCOM::fastANCOM(Y=t(data), x=label, Z=conf[names(label),])
   }
   p.val[rownames(res.fastancom$results$final)] <- 
     res.fastancom$results$final$log2FC.pval
@@ -148,7 +146,7 @@ test.ZicoSeq <- function(data, label, conf){
   names(p.val) <- rownames(data)
   # apparently we have to do the prevalence filtering ourselves?
   data.red <- data[apply(data, 1, sd) > 0,]
-  ZicoSeq.obj <- ZicoSeq(feature.dat = data.red, meta.dat = meta, 
+  ZicoSeq.obj <- GUniFrac::ZicoSeq(feature.dat = data.red, meta.dat = meta, 
                          grp.name = 'label',
                          feature.dat.type = 'count',
                          # more lenient filtering than in the vignette
@@ -186,8 +184,8 @@ test.wilcoxon <- function(data, label, conf){
       df.temp <- data.frame(feat=as.numeric(data[f,]),
                             l=as.factor(label),
                             conf=as.factor(conf[,1]))
-      t <- wilcox_test(feat~l|conf, data=df.temp)
-      p.val[f] <- pvalue(t)
+      t <- coin::wilcox_test(feat~l|conf, data=df.temp)
+      p.val[f] <- coin::pvalue(t)
     }
     # browser()
   } else {
@@ -259,25 +257,25 @@ test.DESeq <- function(data, label){
   stopifnot(all(sort(unique(label)) == c(-1, 1)))
 
   # convert to phyloseq object
-  temp_otu <- otu_table(data, taxa_are_rows = TRUE)
+  temp_otu <- phyloseq::otu_table(data, taxa_are_rows = TRUE)
   temp_sample <- as.matrix(label)
   rownames(temp_sample) <- colnames(data)
   colnames(temp_sample) <- 'label'
   temp_sample <- data.frame(temp_sample)
   temp_sample$label <- factor(temp_sample$label)
-  physeq <- phyloseq(otu_table(temp_otu),
-                     sample_data(temp_sample))
+  physeq <- phyloseq::phyloseq(phyloseq::otu_table(temp_otu),
+                               phyloseq::sample_data(temp_sample))
   ####
   # taken from phyloseq vignette
-  diagdds = phyloseq_to_deseq2(physeq, ~label)
+  diagdds = phyloseq::phyloseq_to_deseq2(physeq, ~label)
   # calculate geometric means prior to estimate size factors
   gm_mean = function(x, na.rm=TRUE){
     exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
   }
-  geoMeans = apply(counts(diagdds), 1, gm_mean)
-  diagdds = estimateSizeFactors(diagdds, geoMeans = geoMeans)
-  diagdds = DESeq(diagdds, fitType="local")
-  res = results(diagdds)
+  geoMeans = apply(DESeq2::counts(diagdds), 1, gm_mean)
+  diagdds = DESeq2::estimateSizeFactors(diagdds, geoMeans = geoMeans)
+  diagdds = DESeq2::DESeq(diagdds, fitType="local")
+  res = DESeq2::results(diagdds)
   p.val <- res$pvalue
   names(p.val) <- rownames(res)
   return(p.val)
@@ -297,24 +295,25 @@ test.MGS <- function(data, label, type=1, conf=NULL){
   non.sparse.samples = which(colSums(trim.feat) > 10)
   trim.feat = trim.feat[,non.sparse.samples]
   label <- label[names(non.sparse.samples)]
-  mgs.obj = newMRexperiment(trim.feat)
-  p = tryCatch({cumNormStat(mgs.obj, pFlag=FALSE, main="Trimmed data")},
+  mgs.obj = metagenomeSeq::newMRexperiment(trim.feat)
+  p = tryCatch({metagenomeSeq::cumNormStat(mgs.obj, pFlag=FALSE, 
+                                           main="Trimmed data")},
                error=function(err){0.5})
-  mgs.obj = cumNorm(mgs.obj, p=p)
+  mgs.obj = metagenomeSeq::cumNorm(mgs.obj, p=p)
 
   mod = model.matrix(~as.factor(label))
   rownames(mod) <- colnames(trim.feat)
   p.val <- tryCatch({
     if (type==1){
-      settings = zigControl(maxit=20, verbose=TRUE)
-      fit = fitZig(mgs.obj, mod=mod, control=settings)
+      settings = metagenomeSeq::zigControl(maxit=20, verbose=TRUE)
+      fit = metagenomeSeq::fitZig(mgs.obj, mod=mod, control=settings)
     } else if (type==2){
-      fit = fitFeatureModel(obj=mgs.obj, mod=mod)
+      fit = metagenomeSeq::fitFeatureModel(obj=mgs.obj, mod=mod)
     } else {
       stop("Unsupported type!")
     }
 
-    res <- MRcoefs(fit, number = Inf)
+    res <- metagenomeSeq::MRcoefs(fit, number = Inf)
     p.val = rep(1, nrow(data))
     names(p.val) = rownames(data)
     p.val[row.names(res)] = res$pvalues
@@ -343,16 +342,16 @@ test.edgeR <- function(data, label){
   groups[label==-1] = 'neg'
   names(groups) = colnames(data)
 
-  y = DGEList(counts=f.counts, group=groups)
+  y = edgeR::DGEList(counts=f.counts, group=groups)
   # test for error message
   t <- exp(rowMeans(log(f.counts)))
   if (any(t > 0)){
     y = edgeR::calcNormFactors(y, method='RLE')
   }
-  y = estimateCommonDisp(y)
-  y = estimateTagwiseDisp(y)
-  et = exactTest(y)
-  res = topTags(et, n=length(nonzero.idx), sort.by='none')
+  y = edgeR::estimateCommonDisp(y)
+  y = edgeR::estimateTagwiseDisp(y)
+  et = edgeR::exactTest(y)
+  res = edgeR::topTags(et, n=length(nonzero.idx), sort.by='none')
   stopifnot(all(names(nonzero.idx) == rownames(res$table)))
   p.val = rep(1.0, nrow(data))
   names(p.val) <- rownames(data)
@@ -511,9 +510,10 @@ test.ANCOMBC <- function(data, label, conf){
     s.data <- cbind(data.frame(label=label, dummy=2), conf)
     f.form <- paste0('label+', paste(colnames(conf), collapse = '+'))
   }
-  x.phylo <- phyloseq(otu_table = otu_table(data, taxa_are_rows = TRUE),
-                      sample_data = sample_data(s.data))
-  temp <- ancombc(phyloseq = x.phylo, formula = f.form,
+  x.phylo <- phyloseq::phyloseq(
+    otu_table = phyloseq::otu_table(data, taxa_are_rows = TRUE),
+    sample_data = phyloseq::sample_data(s.data))
+  temp <- ANCOMBC::ancombc(phyloseq = x.phylo, formula = f.form,
                   p_adj_method = 'fdr', lib_cut = 100)
   p.val <- rep(1, nrow(data))
   names(p.val) <- rownames(data)
@@ -539,8 +539,8 @@ test.ZIBseq <- function(data, label, conf, transform=FALSE){
   P = dim(X)[2]
   beta = matrix(data = NA, P, 2)
   .f_test <- function(a, b){
-    bereg <- gamlss(a ~ b, family = BEZI(sigma.link = "identity"),
-                    trace = FALSE, control = gamlss.control(n.cyc = 100))
+    bereg <- ZIBSeq::gamlss(a ~ b, family = ZIBSeq::BEZI(sigma.link = "identity"),
+                    trace = FALSE, control = ZIBSeq::gamlss.control(n.cyc = 100))
     out = summary(bereg)
     return(out[2, c(1, 4)])
   }
@@ -583,9 +583,10 @@ test.corncob <- function(data, label, conf){
     s <- cbind(s, conf[names(label),,drop=FALSE])
     rownames(s) <- paste0('sample_', seq_len(nrow(s)))
     colnames(data) <- rownames(s)
-    x.phylo <- phyloseq(otu_table = otu_table(data, taxa_are_rows = TRUE),
-                        sample_data = sample_data(s))
-    x <- differentialTest(formula = ~label + conf,
+    x.phylo <- phyloseq::phyloseq(
+      otu_table = phyloseq::otu_table(data, taxa_are_rows = TRUE),
+      sample_data = phyloseq::sample_data(s))
+    x <- corncob::differentialTest(formula = ~label + conf,
                           phi.formula = ~label,
                           formula_null = ~conf,
                           phi.formula_null = ~label,
@@ -594,9 +595,10 @@ test.corncob <- function(data, label, conf){
   } else {
     rownames(s) <- paste0('sample_', seq_len(nrow(s)))
     colnames(data) <- rownames(s)
-    x.phylo <- phyloseq(otu_table = otu_table(data, taxa_are_rows = TRUE),
-                        sample_data = sample_data(s))
-    x <- differentialTest(formula = ~label,
+    x.phylo <- phyloseq::phyloseq(
+      otu_table = phyloseq::otu_table(data, taxa_are_rows = TRUE),
+      sample_data = phyloseq::sample_data(s))
+    x <- corncob::differentialTest(formula = ~label,
                           phi.formula = ~label,
                           formula_null = ~1,
                           phi.formula_null = ~label,
@@ -613,12 +615,17 @@ test.via.limma <- function(data, label, conf){
   stopifnot(all(colnames(data)==names(label)))
   test.package('limma')
   if (is.null(conf)){
-    fit <- lmFit(data, design = data.frame(intercept = -1, label))
+    fit <- limma::lmFit(data, design = data.frame(intercept = -1, label))
   } else {
-    x <- duplicateCorrelation(data, design = data.frame(label), block = conf[colnames(data), 'conf'])
-    fit <- lmFit(data, design = data.frame(intercept = -1, label), block = conf[colnames(data), 'conf'], correlation = x[[1]])
+    x <- limma::duplicateCorrelation(
+      data, design = data.frame(label), 
+      block = conf[colnames(data), 'conf'])
+    fit <- limma::lmFit(
+      data, design = data.frame(intercept = -1, label), 
+      block = conf[colnames(data), 'conf'], correlation = x[[1]])
   }
-  
+  res <- limma::eBayes(fit)
+  p.val <- res$p.value[,'label']
   
   return(p.val)
 }
@@ -649,7 +656,7 @@ test.lm <- function(data, label, conf){
         return(1)
       } else {
         fit <- lm(data=df, formula = as.formula(fo))
-        res <- Anova(fit, type = 'III')
+        res <- car::Anova(fit, type = 'III')
         return(res$`Pr(>F)`[2])
       }
     }, FUN.VALUE = double(1))
@@ -682,7 +689,7 @@ test.lminter <- function(data, label, conf){
         return(1)
       } else {
         fit <- lm(data=df, formula = as.formula(fo))
-        res <- Anova(fit, type = 'III')
+        res <- car::Anova(fit, type = 'III')
         return(res$`Pr(>F)`[2])
       }
     }, FUN.VALUE = double(1))
@@ -704,7 +711,7 @@ test.lme <- function(data, label, conf){
       p <- tryCatch({
         df <- cbind(data.frame(feat=data[x,], label=label), conf)
         fit <- suppressMessages(suppressWarnings(
-          lmer(data=df, formula = as.formula(formula))))
+          lmerTest::lmer(data=df, formula = as.formula(formula))))
         res <- coefficients(summary(fit))
         res['label', 'Pr(>|t|)']
       },
@@ -828,15 +835,15 @@ test.aldex2 <- function(data, label, conf){
   data <- vapply(colnames(data), FUN=function(x){round(data[,x])},
                  FUN.VALUE = double(nrow(data)))
   if (is.null(conf)){
-    temp <- aldex(reads=data, conditions=label)
+    temp <- ALDEx2::aldex(reads=data, conditions=label)
     p.val <- rep(1, nrow(data))
     names(p.val) <- rownames(data)
     p.val[rownames(temp)] <- temp$wi.ep
   } else if (nrow(conf)==1){
     design <- model.matrix(~label + conf[,1])
-    x <- aldex.clr(reads=data, conds = design)
-    glm.test <- aldex.glm(x, design)
-    glm.effect <- aldex.glm.effect(x)
+    x <- ALDEx2::aldex.clr(reads=data, conds = design)
+    glm.test <- ALDEx2::aldex.glm(x, design)
+    glm.effect <- ALDEx2::aldex.glm.effect(x)
     p.val <- rep(1, nrow(data))
     names(p.val) <- rownames(data)
     p.val[rownames(glm.test)] <- glm.test[['model.label Pr(>|t|)']]
@@ -869,11 +876,11 @@ test.ks <- function(data, label, conf){
 test.scde <- function(data, label, conf){
   test.package('scde')
   data <- data[,names(label)]
-  cd <- clean.counts(data, min.lib.size=10,
+  cd <- scde::clean.counts(data, min.lib.size=10,
                      min.reads = 1,
                      min.detected = 1)
   cd <- apply(cd, 2, function(x){storage.mode(x) <- 'integer'; x})
-  o.ifm <- scde.error.models(counts = cd, groups = label[colnames(cd)],
+  o.ifm <- scde::scde.error.models(counts = cd, groups = label[colnames(cd)],
                              threshold.segmentation = TRUE,
                              save.crossfit.plots = FALSE,
                              min.size.entries = 10,
@@ -881,10 +888,10 @@ test.scde <- function(data, label, conf){
   valid.cells <- o.ifm$corr.a > 0
 
   o.ifm <- o.ifm[valid.cells, ]
-  o.prior <- scde.expression.prior(models = o.ifm, counts = cd,
+  o.prior <- scde::scde.expression.prior(models = o.ifm, counts = cd,
                                    length.out = 400, show.plot = FALSE)
   if (is.null(conf)){
-    ediff <- scde.expression.difference(o.ifm, cd, o.prior,
+    ediff <- scde::scde.expression.difference(o.ifm, cd, o.prior,
                                         groups=as.factor(label[colnames(cd)]),
                                         n.randomizations=100,
                                         n.cores=1, verbose=1)
@@ -892,7 +899,7 @@ test.scde <- function(data, label, conf){
     p.val <- pnorm(ediff$cZ, lower.tail = FALSE)
     names(p.val) <- rownames(ediff)
   } else if (nrow(conf)==1) {
-    ediff <- scde.expression.difference(o.ifm, cd, o.prior,
+    ediff <- scde::scde.expression.difference(o.ifm, cd, o.prior,
                                         groups=as.factor(label[colnames(cd)]),
                                         n.randomizations=100,
                                         batch=as.factor(conf[,1]),
@@ -915,7 +922,7 @@ test.MAST <- function(data, label, conf){
   names(p.val) <- rownames(data)
 
   # transform into single cell data experiment
-  x <- FromMatrix(data, cData = as.data.frame(cbind(label, conf)),
+  x <- MAST::FromMatrix(data, cData = as.data.frame(cbind(label, conf)),
                   check_sanity = FALSE)
 
   ## differential expression
@@ -925,7 +932,7 @@ test.MAST <- function(data, label, conf){
     formula <- as.formula(paste0('~label+', paste(colnames(conf),
                                                   collapse='+')))
   }
-  fit <- zlm(formula, sca = x, ebayes = TRUE)
+  fit <- MAST::zlm(formula, sca = x, ebayes = TRUE)
   coefs <- MAST::summary(fit, logFC=FALSE, doLRT=TRUE)$datatable
   mast.results <- coefs[coefs$component=='H' & coefs$contrast == 'label',]
 
@@ -941,7 +948,7 @@ test.mixMC <- function(data, label, conf){
     stop("Method 'mixMC' is not compatible with confounders!")
   }
   data <- 10^data
-  splsda.tune <- tune.splsda(X=t(data),
+  splsda.tune <- mixOmics::tune.splsda(X=t(data),
                              Y = label,
                              ncomp = 1,
                              multilevel = NULL,
@@ -951,7 +958,7 @@ test.mixMC <- function(data, label, conf){
                              folds = 5,
                              dist = 'max.dist',
                              nrepeat = 10)
-  res.splsda <- splsda(X=t(data),
+  res.splsda <- mixOmics::splsda(X=t(data),
                        Y = label, ncomp=1,
                        keepX = splsda.tune$choice.keepX[1],
                        logratio = 'CLR')
@@ -959,7 +966,7 @@ test.mixMC <- function(data, label, conf){
   p.val <- rep(1, nrow(data))
   names(p.val) <- rownames(data)
 
-  vars <- selectVar(res.splsda)
+  vars <- mixOmics::selectVar(res.splsda)
   temp <- abs(vars$value$value.var)
   fake.p.val <- seq(from=0, to=0.049, length.out=length(temp))
   fake.p.val <- fake.p.val[order(-temp)]
@@ -973,10 +980,10 @@ test.distinct <- function(data, label, conf){
   test.package('distinct')
   test.package('SingleCellExperiment')
   # transform into single cell data experiment
-  x <- SingleCellExperiment(list('norm_data'=data))
-  colData(x)$sample_id <- colnames(data)
-  colData(x)$cluster_id <- 'all'
-  colData(x)$group <- label
+  x <- SingleCellExperiment::SingleCellExperiment(list('norm_data'=data))
+  SingleCellExperiment::colData(x)$sample_id <- colnames(data)
+  SingleCellExperiment::colData(x)$cluster_id <- 'all'
+  SingleCellExperiment::colData(x)$group <- label
   if (is.null(conf)){
     design <- model.matrix(~label)
     rownames(design) <- colnames(data)
@@ -986,7 +993,7 @@ test.distinct <- function(data, label, conf){
   } else {
     stop("Not yet implemented for mulitple confounders!")
   }
-  res <- distinct_test(x, name_assays_expression = 'norm_data',
+  res <- distinct::distinct_test(x, name_assays_expression = 'norm_data',
                        name_sample = 'sample_id', name_cluster = 'cluster_id',
                        design = design)
   p.val <- rep(1, nrow(data))
@@ -1008,13 +1015,6 @@ test.gFC <- function(data, label, conf){
 }
 
 #' @keywords internal
-test.songbird <- function(data, label, conf){
-  browser()
-
-  return(p.val)
-}
-
-#' @keywords internal
 test.ZINQ <- function(data, label, conf){
   test.package('ZINQ')
   p.val <- rep(1, nrow(data))
@@ -1033,8 +1033,8 @@ test.ZINQ <- function(data, label, conf){
     if (ncol(temp) == 2){
       colnames(temp) <- c('Y', 'X')
       p.sp <- tryCatch({
-        res <- ZINQ_tests(Y~X, Y~X, C='X', data=temp)
-        ZINQ_combination(res)
+        res <- ZINQ::ZINQ_tests(Y~X, Y~X, C='X', data=temp)
+        ZINQ::ZINQ_combination(res)
       }, error=function(err){1})
       p.val[sp] <- p.sp
     } else {
@@ -1042,8 +1042,8 @@ test.ZINQ <- function(data, label, conf){
       formula <- as.formula(paste0('Y~X+', paste0(colnames(temp)[-c(1,2)],
                                                   collapse = '+')))
       p.sp <- tryCatch({
-        res <- ZINQ_tests(formula, formula, C='X', data=temp)
-        ZINQ_combination(res)
+        res <- ZINQ::ZINQ_tests(formula, formula, C='X', data=temp)
+        ZINQ::ZINQ_combination(res)
       }, error=function(err){1})
       p.val[sp] <- p.sp
     }
@@ -1053,11 +1053,8 @@ test.ZINQ <- function(data, label, conf){
 
 #' @keywords internal
 test.package <- function(x){
-  suppressWarnings(
-    suppressPackageStartupMessages(
-      success <- library(x, character.only = TRUE, logical.return = TRUE,
-                         verbose = FALSE, quietly = FALSE)))
-  if (!success){
+  success <- find.package(x, verbose = FALSE, quiet = TRUE)
+  if (length(success)==0){
     stop("Package ", x, " is not yet installed!")
   }
 }

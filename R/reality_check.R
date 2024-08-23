@@ -10,7 +10,7 @@
 #' @description This function will compare simulated data with the
 #' real data on which the simulations are based
 #'
-#' @usage check.simulations(sim.location, group, ml=FALSE)
+#' @usage reality.check(sim.location, group, ml=FALSE)
 #'
 #' @param sim.location file name for the .h5 file containing the simulations
 #'
@@ -39,7 +39,7 @@
 #' \item \code{AUC-E} AUROC value for how well real and simulated data can be
 #' distinguished based on the log-Euclidean distance
 #' \item \code{AUC-ML} AUROC value for how well real and simulated data can be
-#' distinguished based on a \link[SIAMCAT::SIAMCAT]{SIAMCAT}
+#' distinguished based on a \link[SIAMCAT]{SIAMCAT}
 #' machine learning model
 #' }
 #'
@@ -194,7 +194,7 @@ reality.check <- function(sim.location, group, ml=FALSE){
     message("++ based on Bray-Curtis distance")
     tmp <- cbind(feat.filt, feat.sim)
     bc <- vegdist(t(tmp))
-    permanova.bc <- adonis(bc~c(colnames(tmp) %in% colnames(feat.filt)))
+    permanova.bc <- vegan::adonis2(bc~c(colnames(tmp) %in% colnames(feat.filt)))
     bc <- as.matrix(bc)
     diag(bc) <- NA
     bc[lower.tri(bc)] <- NA
@@ -208,7 +208,7 @@ reality.check <- function(sim.location, group, ml=FALSE){
     # log-euclidean distances
     message("++ based on log-Euclidean distance")
     euc <- vegdist(t(log10(tmp + log.n0)), method='euclidean')
-    permanova.euc <- adonis(euc~c(colnames(tmp) %in% colnames(feat.filt)))
+    permanova.euc <- vegan::adonis2(euc~c(colnames(tmp) %in% colnames(feat.filt)))
     euc <- as.matrix(euc)
     diag(euc) <- NA
     euc[lower.tri(euc)] <- NA
@@ -253,24 +253,22 @@ reality.check <- function(sim.location, group, ml=FALSE){
         label.vec <- label.vec[c(sample(real, size=100), sample(sim, size=100))]
       }
 
-      sc <- siamcat(feat=prop.table(tmp, 2),
+      sc <- SIAMCAT::siamcat(feat=prop.table(tmp, 2),
                     label=label.vec,
                     case='sim',
                     verbose=0)
-      sc <- normalize.features(sc,
+      sc <- SIAMCAT::normalize.features(sc,
                                norm.method = 'log.std',
                                norm.param = list(log.n0=log.n0, sd.min.q=0),
                                feature.type = 'original',
                                verbose=0)
-      data <- data.frame(t(get.norm_feat.matrix(sc)))
-      # add label
-      data$label <- as.factor(label(sc)$label[rownames(data)])
-      lrn <- makeLearner(cl='classif.cvglmnet', predict.type='prob', alpha=1)
-      r <- makeResampleDesc(method='CV', iters=10, stratify = TRUE)
-      task <- makeClassifTask(data=data, target='label')
-      test <- resample(lrn, task, r, measures = mlr::auc, show.info = FALSE)
-      ml.res <- test$aggr
-
+      sc <- SIAMCAT::create.data.split(sc, 
+                                       num.folds = 10, num.resample = 1,
+                                       verbose=0)
+      sc <- SIAMCAT::train.model(sc, verbose=0, method='lasso')
+      sc <- SIAMCAT::make.predictions(sc, verbose=0)
+      sc <- SIAMCAT::evaluate.predictions(sc, verbose=0)
+      ml.res <- as.numeric(sc@eval_data$auroc)
     } else {
       ml.res <- NULL
     }

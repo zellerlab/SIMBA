@@ -9,7 +9,7 @@
 #' @description This function takes the results of the \link{apply.test}
 #' function and calculates different evaluation measures (see Details).
 #'
-#' @usage eval.test(sim.location, group, res.mat, alpha = 0.05)
+#' @usage eval.test(sim.location, group, res.mat, adjust='BH', alpha = 0.05)
 #'
 #' @param sim.location file name for the .h5 file containing the simulations
 #'
@@ -18,6 +18,9 @@
 #'
 #' @param res.mat matrix, output from the \link{apply.test} function
 #'
+#' @param adjust character, indicate the multiple hypothesis testing to be
+#' performed on the P-values, defaults to "BH"
+#' 
 #' @param alpha numeric, significance threshold at which the test will be
 #' evaluated, defaults to \code{0.05}
 #'
@@ -105,9 +108,9 @@ check.eval.parameters <- function(sim.location, group,
   if (mode(adjust)!='character' | length(adjust)!=1){
     stop("Parameter 'adjust' should be a character and of length 1!")
   }
-  if (!adjust %in% p.adjust.methods){
+  if (!adjust %in% stats::p.adjust.methods){
     stop("Parameter 'adjust' must be one of these: c('", 
-         paste(p.adjust.methods, collapse = "', '"), "')")
+         paste(stats::p.adjust.methods, collapse = "', '"), "')")
   }
   # get marker features
   this <- h5read(file = sim.location, name = group)

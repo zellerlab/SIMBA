@@ -10,7 +10,7 @@
 #' @description This function will generate a principal coordinate analysis
 #' plot comparing the original data and the simulated data for different groups
 #'
-#' @usage pcoa.plot(sim.location, group)
+#' @usage pcoa.plot(sim.location, group, distance)
 #'
 #' @param sim.location file name for the .h5 file containing the simulations
 #'
@@ -28,7 +28,6 @@
 #' group (either real or simulated data).
 #'
 pcoa.plot <- function(sim.location, group, distance){
-  test.package("ggplot2")
 
   message("+ Checking parameters")
   log.n0 <- pcoa.check.parameters(sim.location, group, distance)
@@ -141,21 +140,24 @@ pcoa.plot <- function(sim.location, group, distance){
                          (pco.res$eig[1:2]/sum(
                            pco.res$eig[pco.res$eig > 0])) * 100)
 
-  g <- ggplot(df.plot, aes(x=V1, y=V2, col=group)) +
-    theme_classic() +
-    scale_colour_manual(values = c('#307FE275', '#FFA30075', '#E4004675'),
-                        name='') +
-    xlab(paste0('PCo 1 [', axis.labels[1], '%]')) +
-    ylab(paste0('PCo 2 [', axis.labels[2], '%]'))
+  g <- ggplot2::ggplot(df.plot, ggplot2::aes(x=df.plot$V1, 
+                                    y=df.plot$V2, 
+                                    col=df.plot$group)) +
+    ggplot2::theme_classic() +
+    ggplot2::scale_colour_manual(
+      values = c('#307FE275', '#FFA30075', '#E4004675'),
+      name='') +
+    ggplot2::xlab(paste0('PCo 1 [', axis.labels[1], '%]')) +
+    ggplot2::ylab(paste0('PCo 2 [', axis.labels[2], '%]'))
   if ('confounder' %in% colnames(df.meta)){
-    if (any(str_detect(df.meta$confounder, 'Study'))){
+    if (any(stringr::str_detect(df.meta$confounder, 'Study'))){
       g <- g +
-        geom_point(aes(shape=as.factor(confounder))) +
-        scale_shape_manual(values=c(19, 17), name='Study')
+        ggplot2::geom_point(ggplot2::aes(shape=as.factor(df.plot$confounder))) +
+        ggplot2::scale_shape_manual(values=c(19, 17), name='Study')
     } else {
       g <- g +
-        geom_point(aes(shape=as.factor(confounder))) +
-        scale_shape_manual(values=c(19, 3, 17),
+        ggplot2::geom_point(ggplot2::aes(shape=as.factor(df.plot$confounder))) +
+        ggplot2::scale_shape_manual(values=c(19, 3, 17),
                            name=paste0('Confounder: ',
                                        sim.params$sim_params$conf),
                            labels=c('0'='original', '-1'='positive',
@@ -163,7 +165,7 @@ pcoa.plot <- function(sim.location, group, distance){
                            )
     }
   } else {
-    g <- g + geom_point()
+    g <- g + ggplot2::geom_point()
   }
   return(g)
 }

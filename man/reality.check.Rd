@@ -4,7 +4,7 @@
 \alias{reality.check}
 \title{Check simulations for realism}
 \usage{
-check.simulations(sim.location, group, ml=FALSE)
+reality.check(sim.location, group, ml=FALSE)
 }
 \arguments{
 \item{sim.location}{file name for the .h5 file containing the simulations}
@@ -38,7 +38,7 @@ distinguished based on the Bray-Curtis distance
 \item \code{AUC-E} AUROC value for how well real and simulated data can be
 distinguished based on the log-Euclidean distance
 \item \code{AUC-ML} AUROC value for how well real and simulated data can be
-distinguished based on a \link[SIAMCAT::SIAMCAT]{SIAMCAT}
+distinguished based on a \link[SIAMCAT]{SIAMCAT}
 machine learning model
 }
 }

@@ -148,7 +148,7 @@ ANCOM = function(feature_table, meta_data, struc_zero = NULL, main_var, p_adj_me
   if (is.null(rand_formula) & is.null(adj_formula)) {
     # Basic model
     # Whether the main variable of interest has two levels or more?
-    if (length(unique(meta_data%>%pull(main_var))) == 2) {
+    if (length(unique(dplyr::pull(meta_data, main_var))) == 2) {
       # Two levels: Wilcoxon rank-sum test
       tfun = stats::wilcox.test
     } else{
@@ -237,7 +237,7 @@ ANCOM = function(feature_table, meta_data, struc_zero = NULL, main_var, p_adj_me
   out_comp = data.frame(taxa_id, W, row.names = NULL, check.names = FALSE)
   # Declare a taxon to be differentially abundant based on the quantile of W statistic.
   # We perform (n_taxa - 1) hypothesis testings on each taxon, so the maximum number of rejections is (n_taxa - 1).
-  out_comp = out_comp%>%mutate(detected_0.9 = ifelse(W > 0.9 * (n_taxa -1), TRUE, FALSE),
+  out_comp = dplyr::mutate(out_comp, detected_0.9 = ifelse(W > 0.9 * (n_taxa -1), TRUE, FALSE),
                                detected_0.8 = ifelse(W > 0.8 * (n_taxa -1), TRUE, FALSE),
                                detected_0.7 = ifelse(W > 0.7 * (n_taxa -1), TRUE, FALSE),
                                detected_0.6 = ifelse(W > 0.6 * (n_taxa -1), TRUE, FALSE))

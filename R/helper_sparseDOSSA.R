@@ -9,7 +9,7 @@
 # based on the R package found under
 # https://github.com/biobakery/sparseDOSSA
 
-
+#' @keywords internal
 simulate.sparseDOSSA <- function(feat, meta, sim.out, sim.params){
 
   prop.markers <- sim.params$prop.markers

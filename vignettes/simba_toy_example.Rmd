@@ -16,11 +16,11 @@ vignette: >
 
 This vignette aims to introduce the basic functionality of the SIMBA package and show the structure of the H5 files integral to its use. 
 
-Here and in the manuscript, we use the data and metadata from [Zeevi et al.](https://www.cell.com/cell/fulltext/S0092-8674(15)01481-6) as input for different case-control simulation frameworks.
+Here and in the manuscript, we use the data and metadata from [Zeevi et al.](https://doi.org/10.1016/j.cell.2015.11.001) as input for different case-control simulation frameworks.
 
 ```{r setup}
 library("tidyverse") # for data wrangling
-library("SIMBA")
+library("simbaR")
 data("toy_example") # example data
 ```
 
@@ -169,7 +169,7 @@ map(stats, ~ head(.))
 PCoAs may also be used to visualize the difference between real and simulated samples.
 
 ```{r pcoa.plots}
-library(patchwork)
+library("patchwork")
 
 pcoa.mmh <- pcoa.plot(sim.mmh, 'ab2_rep1', 'bray') +
   labs(title = 'Multinomial, McMurdie & Holmes') 

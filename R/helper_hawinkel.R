@@ -87,8 +87,8 @@ simulate.betabin <- function(feat, meta, sim.out, sim.params){
     message("++ Only ", n.cores, " cores detected. It would be better to",
             " have more cores available!")
   }
-  res <- spiec.easi(t(feat), verbose=TRUE, pulsar.params=list(ncores=n.cores))
-  correlation <- getOptCov(res)
+  res <- SpiecEasi::spiec.easi(t(feat), verbose=TRUE, pulsar.params=list(ncores=n.cores))
+  correlation <- SpiecEasi::getOptCov(res)
 
   # calculate rhos/phis
   message("++ Starting to estimate parameters ",
@@ -149,8 +149,8 @@ simulate.negbin <- function(feat, meta, sim.out, sim.params){
       message("++ Only ", n.cores, " cores detected. It would be better to",
               " have more cores available!")
     }
-    res <- spiec.easi(t(feat), verbose=TRUE, pulsar.params=list(ncores=n.cores))
-    correlation <- getOptCov(res)
+    res <- SpiecEasi::spiec.easi(t(feat), verbose=TRUE, pulsar.params=list(ncores=n.cores))
+    correlation <- SpiecEasi::getOptCov(res)
   } else {
     correlation <- NULL
   }
@@ -323,7 +323,7 @@ simulate.markers.betabin <- function(pis, theta,
   for(nRun in seq_along(sampleSizes)){
     indSel <- (samSizeSeq[nRun] + 1L):samSizeSeq[nRun + 1L]
     dmData[indSel, ] <- rmvbetabin(n=sampleSizes[nRun], pi=pis.all[, nRun],
-                                   libSize=libSizesOrig[indSel],
+                                   libSizes=libSizesOrig[indSel],
                                    Sigma=correlation, theta = theta)
   }
 
@@ -417,10 +417,11 @@ rmvnegbin <- function(n, mu, Sigma, ks, ...) {
   if (dim(mu)[2] != dim(Sigma)[2])
     stop("Sigma and mu dimensions don't match")
   if (missing(ks)) {
-    ks <- unlist(lapply(1:length(SDs), function(i) .negbin_getK(mu[i], SDs[i])))
+    # ks <- unlist(lapply(1:length(SDs), function(i) .negbin_getK(mu[i], SDs[i])))
+    stop("Problem with this dataset!")
   }
   d <- dim(mu)[2]
-  normd <- rmvnorm(n, rep(0, d), Sigma = Cor)  #The normal-to-anything framework
+  normd <- mvtnorm::rmvnorm(n, rep(0, d), Sigma = Cor)  #The normal-to-anything framework
   unif <- pnorm(normd)
   data <- t(qnbinom(t(unif), mu = t(mu), size = ks, ...))
   data <- fixInf(data)
@@ -431,7 +432,7 @@ rmvnegbin <- function(n, mu, Sigma, ks, ...) {
 # on the Tailrank package
 #' @keywords internal
 qbetabin = function(p, N, u, v) {
-  pp <- cumsum(dbb(0:N, N, u, v))
+  pp <- cumsum(TailRank::dbb(0:N, N, u, v))
   sapply(p, function(x) sum(pp < x, na.rm = TRUE))
 }
 
@@ -450,7 +451,7 @@ rmvbetabin = function(n, pi, Sigma, theta, libSizes, ...) {
     stop("No overdispersion parameter supplied")
   }
   d <- length(pi)
-  normd <- rmvnorm(n, rep(0, d), Sigma = Cor)  #The normal-to-anything framework
+  normd <- mvtnorm::rmvnorm(n, rep(0, d), Sigma = Cor)  #The normal-to-anything framework
   unif <- pnorm(normd)
   data <- mapply(unif, rep(pi, each = nrow(unif)), libSizes,
                  FUN = function(u, p, l) {

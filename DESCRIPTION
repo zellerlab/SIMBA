@@ -1,34 +1,72 @@
-Package: SIMBA
+Package: simbaR
 Type: Package
-Title: Simulation of Microbiome data with Biological Accuracy
-Version: 0.5.1
+Title: Simulation of Microbiome Data with Biological Accuracy
+Version: 0.5.3
 Authors@R: c(person("Jakob", "Wirbel", role = c("aut", "cre"),
-                email = "jakob.wirbel@embl.de",
+                email = "jakob.wirbel@gmail.com",
                 comment = c(ORCID = "0000-0002-4073-3562")),
              person("Morgan", "Essex",
-                email = "morgan.essex@embl.de", role = c("aut")),
+                email = "essexmorgan@gmail.com", role = c("aut")),
              person("Sofia", "Forslund",
                 email = "Sofia.Forslund@mdc-berlin.de", role = c("aut")),
              person("Georg", "Zeller",
-                email = "zeller@embl.de", role = c("aut")))
-Maintainer: Jakob Wirbel <jakob.wirbel@embl.de>
-Description: Based on real data, the package simulates new metagenomic data 
-    by re-sampling real samples and then implants differentially abundant 
-    features. Additionally, the package can simulate confounding factors based 
-    on metadata variables in the real data. The simulations are stored in an 
-    `.h5` file, which is then the basis for downstream benchmarking, 
-    involving i) reality assessment of the  simulations, ii) testing for 
-    differential abundance, and iii) evaluation of the output from 
-    differential abundance testing methods.
+                email = "georg.zeller@gmail.com", role = c("aut")))
+Maintainer: Jakob Wirbel <jakob.wirbel@gmail.com>
+Description: Based on real microbiome data, the package simulates new metagenomic data by re-sampling real samples and then implants differentially abundant features. Additionally, the package can simulate confounding factors based on metadata variables in the real data. The simulations are stored in an `.h5` file, which is then the basis for downstream benchmarking, involving i) reality assessment of the simulations, ii) testing for differential abundance, and iii) evaluation of the output from differential abundance testing methods. See Wirbel, Essex, et al. for more information on benchmarking differential abundance testing methods <doi:10.1101/2022.05.09.491139>.
 Depends:
     R (>= 4.0.0),
     rhdf5
+Imports:
+    ineq,
+    labdsv,
+    vegan,
+    progress,
+    pROC,
+    matrixStats,
+    phyloseq,
+    nlme,
+    ggplot2,
+    tmvtnorm
 Suggests:
     knitr,
     rmarkdown,
     tidyverse,
-    patchwork
+    dplyr,
+    stringr,
+    purrr,
+    patchwork,
+    BiocStyle,
+    MASS,
+    MAST,
+    edgeR,
+    exactRankTests,
+    limma,
+    coin,
+    scde,
+    lmerTest,
+    fastANCOM,
+    SingleCellExperiment,
+    distinct,
+    corncob,
+    ANCOMBC,
+    metagenomeSeq,
+    LDM,
+    SIAMCAT,
+    DESeq2,
+    LinDA,
+    ALDEx2,
+    ZINQ,
+    ZIBSeq,
+    sparseDOSSA,
+    mvtnorm,
+    SpiecEasi,
+    TailRank,
+    GUniFrac,
+    car,
+    mixOmics,
+    lmtest
+VignetteBuilder: knitr
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3

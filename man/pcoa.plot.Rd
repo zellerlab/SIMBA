@@ -4,7 +4,7 @@
 \alias{pcoa.plot}
 \title{Plot PCoAs for simulated data}
 \usage{
-pcoa.plot(sim.location, group)
+pcoa.plot(sim.location, group, distance)
 }
 \arguments{
 \item{sim.location}{file name for the .h5 file containing the simulations}

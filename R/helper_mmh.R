@@ -21,9 +21,9 @@ simulate.MMH <- function(feat, meta, sim.out, sim.params){
   no.marker.feat <- round(prop.markers * nrow(feat))
   el.feat.names <- rownames(feat)
 
-  template <- otu_table(feat, taxa_are_rows = TRUE)
+  template <- phyloseq::otu_table(feat, taxa_are_rows = TRUE)
 
-  lib.size <- sample_sums(template)
+  lib.size <- phyloseq::sample_sums(template)
   n <- sample(lib.size, size = ncol(feat), replace = TRUE)
   message("++ Create simulation template from data")
   sim.feat.mmh <- microbesim(template, J=ncol(feat), n=n)
@@ -88,9 +88,9 @@ simulate.W <- function(feat, meta, sim.out, sim.params){
   no.marker.feat <- round(prop.markers * nrow(feat))
   el.feat.names <- rownames(feat)
 
-  template <- otu_table(feat, taxa_are_rows = TRUE)
+  template <- phyloseq::otu_table(feat, taxa_are_rows = TRUE)
 
-  lib.size <- sample_sums(template)
+  lib.size <- phyloseq::sample_sums(template)
   n <- sample(lib.size, size = ncol(feat), replace = TRUE)
   message("++ Create simulation template from data")
   sim.feat.mmh <- microbesim(template, J=ncol(feat), n=n)
@@ -156,7 +156,7 @@ microbesim <- function(template, J, n=1E4){
   # simulated samples in downstream code.
   test.package("phyloseq")
   # call the proporitions vector `pi`, similar to nomenclature from DMN
-  pi = taxa_sums(template)
+  pi = phyloseq::taxa_sums(template)
   # n must be a scalar (recycled as the number of reads for every simulation)
   # or it can be vector of length equal to J,
   # which is the number of samples being simulated.
@@ -205,26 +205,27 @@ microbesim <- function(template, J, n=1E4){
   # Add new simulated sample_names to the row (sample) indices
   rownames(simat) <- paste(1:nrow(simat), '_sim', sep="")
   # Put simulated abundances together with metadata as a phyloseq object
-  OTU = otu_table(simat, taxa_are_rows=FALSE)
+  OTU = phyloseq::otu_table(simat, taxa_are_rows=FALSE)
 
   # Return a phyloseq object
-  return(phyloseq(OTU))
+  return(phyloseq::phyloseq(OTU))
 }
 
 # ##############################################################################
 # simulate markers according to McMurdie&Holmes
+#' @keywords internal
 simulate.markers.MMH <- function(physeq, label, nTP, effectsize){
   # Randomly sample from the available OTU names in physeq and
   # assign them as TP
-  TPOTUs = sample(taxa_names(physeq), nTP, replace=FALSE)
+  TPOTUs = sample(phyloseq::taxa_names(physeq), nTP, replace=FALSE)
   # Define the samples that will have effect applied
   effectsamples = which(label == 1)
   # Apply effect (multiply abundances by effectsize scalar)
-  otu_table(physeq)[effectsamples, TPOTUs] <- effectsize *
-    otu_table(physeq)[effectsamples, TPOTUs]
+  phyloseq::otu_table(physeq)[effectsamples, TPOTUs] <- effectsize *
+    phyloseq::otu_table(physeq)[effectsamples, TPOTUs]
   # Rename these new "true positive" OTUs, with 'TP'
-  wh.TP = taxa_names(physeq) %in% TPOTUs
-  newname = paste0(taxa_names(physeq)[wh.TP], "-TP")
+  wh.TP = phyloseq::taxa_names(physeq) %in% TPOTUs
+  newname = paste0(phyloseq::taxa_names(physeq)[wh.TP], "-TP")
   colnames(physeq@.Data)[wh.TP] <- newname
   rownames(physeq@.Data)[which(label == 1)] <-
     paste0(rownames(physeq@.Data)[which(label == 1)], '-pos')
@@ -233,29 +234,30 @@ simulate.markers.MMH <- function(physeq, label, nTP, effectsize){
 
 # ##############################################################################
 # simulate makers according to Weiss et al.
+#' @keywords internal
 simulate.markers.W <- function(physeq, label, nTP, effectsize){
   # transpose otu table for the Weiss function to work
-  browser()
-  otu_table(physeq) <- t(otu_table(physeq))
+  # browser()
+  phyloseq::otu_table(physeq) <- t(phyloseq::otu_table(physeq))
   # also set the taxa_are_rows variable?
   physeq@taxa_are_rows <- TRUE
   ## Randomly sample from the available OTU names in physeq and
   # assign them as TP
-  TPOTUs = sample(taxa_names(physeq), nTP, replace = FALSE)
+  TPOTUs = sample(phyloseq::taxa_names(physeq), nTP, replace = FALSE)
   physeq.2 = physeq
   # Apply effect (multiply abundances by effectsize scalar)
   #### DIFF: round the otu count to integer after adding effect size
-  otu_table(physeq)[TPOTUs, ] <-
-    apply(effectsize * otu_table(physeq)[TPOTUs, ], 2, round)
+  phyloseq::otu_table(physeq)[TPOTUs, ] <-
+    apply(effectsize * phyloseq::otu_table(physeq)[TPOTUs, ], 2, round)
 
   # Rarely a simulation has a weird value and fails.  Catch these with `try`,
   # and repeat the simulation call if error (it will be a new seed)
   tryAgain = TRUE
   infiniteloopcounter = 1
   while (tryAgain & infiniteloopcounter < 5) {
-    lib.size.1 <- sample_sums(physeq)
+    lib.size.1 <- phyloseq::sample_sums(physeq)
     n1 <- sample(lib.size.1, size = length(which(label==1)), replace = TRUE)
-    lib.size.1 <- sample_sums(physeq.2)
+    lib.size.1 <- phyloseq::sample_sums(physeq.2)
     n2 <- sample(lib.size.1, size = length(which(label==-1)), replace = TRUE)
     sim1 = microbesim(physeq, length(which(label==1)), n1)
     sim2 = microbesim(physeq.2, length(which(label==-1)), n2)
@@ -272,11 +274,11 @@ simulate.markers.W <- function(physeq, label, nTP, effectsize){
   }
   # Merge the two simulated datasets together into one otu_table
   rownames(sim1) <- paste0(rownames(sim1), '-pos')
-  sim = otu_table(cbind(t(sim1), t(sim2)), taxa_are_rows = TRUE)
+  sim = phyloseq::otu_table(cbind(t(sim1), t(sim2)), taxa_are_rows = TRUE)
 
   # Rename the new 'true positive' OTUs, with 'TP'
-  wh.TP = taxa_names(sim) %in% TPOTUs
-  newname = paste0(taxa_names(sim)[wh.TP], "-TP")
+  wh.TP = phyloseq::taxa_names(sim) %in% TPOTUs
+  newname = paste0(phyloseq::taxa_names(sim)[wh.TP], "-TP")
   rownames(sim)[wh.TP] <- newname
   return(sim)
 }
