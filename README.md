@@ -25,6 +25,9 @@ devtools::install_github(repo = 'zellerlab/SIMBA')
 
 _estimated time for installation on a common desktop computer: 12 seconds_
 
+Additionally, the package has been submitted to CRAN under the name `simbaR`.
+
+
 ## Instructions
 
 A typical `SIMBA` workflow consists of four steps, which are explained in more

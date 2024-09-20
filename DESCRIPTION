@@ -1,7 +1,7 @@
 Package: simbaR
 Type: Package
 Title: Simulation of Microbiome Data with Biological Accuracy
-Version: 0.5.4
+Version: 0.5.6
 Authors@R: c(person("Jakob", "Wirbel", role = c("aut", "cre"),
                 email = "jakob.wirbel@gmail.com",
                 comment = c(ORCID = "0000-0002-4073-3562")),
@@ -14,7 +14,7 @@ Authors@R: c(person("Jakob", "Wirbel", role = c("aut", "cre"),
 Maintainer: Jakob Wirbel <jakob.wirbel@gmail.com>
 Description: Based on real microbiome data, the package simulates new metagenomic data by re-sampling real samples and then implants differentially abundant features. Additionally, the package can simulate confounding factors based on metadata variables in the real data. The simulations are stored in an `.h5` file, which is then the basis for downstream benchmarking, involving i) reality assessment of the simulations, ii) testing for differential abundance, and iii) evaluation of the output from differential abundance testing methods. See Wirbel, Essex, et al. for more information on benchmarking differential abundance testing methods <doi:10.1101/2022.05.09.491139>.
 Depends:
-    R (>= 4.0.0),
+    R (>= 4.3.0),
     rhdf5
 Imports:
     ineq,
@@ -56,7 +56,8 @@ Suggests:
     LinDA,
     ALDEx2,
     ZINQ,
-    ZIBSeq,
+    gamlss,
+    gamlss.dist,
     mvtnorm,
     SpiecEasi,
     TailRank,
@@ -64,8 +65,9 @@ Suggests:
     car,
     mixOmics,
     lmtest
+Additional_repositories: https://jakob-wirbel.github.io/drat
 VignetteBuilder: knitr
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1

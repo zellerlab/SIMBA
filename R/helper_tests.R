@@ -526,7 +526,8 @@ test.ZIBseq <- function(data, label, conf, transform=FALSE){
   if (!is.null(conf)){
     stop("'ZIBSeq' is not a confounder-aware test!")
   }
-  test.package('ZIBseq')
+  test.package("gamlss")
+  test.package("gamlss.control")
   stopifnot(ncol(data) == length(label))
   stopifnot(all(sort(unique(label)) == c(-1, 1)))
   # actual code form ZIBSeq
@@ -539,8 +540,8 @@ test.ZIBseq <- function(data, label, conf, transform=FALSE){
   P = dim(X)[2]
   beta = matrix(data = NA, P, 2)
   .f_test <- function(a, b){
-    bereg <- ZIBSeq::gamlss(a ~ b, family = ZIBSeq::BEZI(sigma.link = "identity"),
-                    trace = FALSE, control = ZIBSeq::gamlss.control(n.cyc = 100))
+    bereg <- gamlss::gamlss(a ~ b, family = gamlss.dist::BEZI(sigma.link = "identity"),
+                    trace = FALSE, control = gamlss::gamlss.control(n.cyc = 100))
     out = summary(bereg)
     return(out[2, c(1, 4)])
   }
