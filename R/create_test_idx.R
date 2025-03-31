@@ -141,9 +141,10 @@ save.idx <- function(ab, rep, subs, reps, class.balance, sim.file,
                        sample(neg.samples, s*class.balance,
                               replace = TRUE)) }
       else {
-        sub.label <- c(sample(pos.samples, s*(1-class.balance)),
-                       sample(neg.samples, s*class.balance)) }
-      stopifnot(length(sub.label) == s)
+        sub.label <- c(sample(pos.samples, ceiling(s*(1-class.balance))),
+                       sample(neg.samples, ceiling(s*class.balance))) }
+      stopifnot(length(sub.label) >= s)
+      sub.label <- sub.label[seq(s)]
       mat[r,] <- sub.label
     }
     fix.label <- c(rep(-1, s*(1-class.balance)), rep(1, s*class.balance))
