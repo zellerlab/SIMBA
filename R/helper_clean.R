@@ -229,7 +229,7 @@ validate.original.data <- function(d.list, sim.method){
         stop("There is no overlap between samples in feat and meta",
              " for dataset No. ", i)
       }
-      stop("Less than 100 samples for the dataset No. ", i)
+      stop("Less than 50 samples for the dataset No. ", i)
     }
     
     feat.temp <- feat.temp[,all.samples]
